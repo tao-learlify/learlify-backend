@@ -1,6 +1,6 @@
 import express from 'express'
 import http from 'http'
-import io from 'socket.io'
+import { Server } from 'socket.io'
 import dotenv from 'dotenv'
 import passport from 'passport'
 import i18n from 'i18n'
@@ -55,7 +55,7 @@ const app = express()
 
 const server = http.createServer(app)
 
-const stream = io()
+const stream = new Server()
 
 /**
  * @description
@@ -130,7 +130,12 @@ const Sockets = new WebSockets({
 stream.attach(server, {
   cookie: false,
   pingInterval: 10000,
-  pingTimeout: 5000
+  pingTimeout: 5000,
+  allowEIO3: true,
+  cors: {
+    origin: config.AUTHORIZED_ORIGINS,
+    credentials: true
+  }
 })
 
 /**
