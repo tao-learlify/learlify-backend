@@ -90,7 +90,7 @@ export class WebSockets {
       })
 
       socket.on(EVENT.DISCONNECTING, () => {
-        this.logger.info('socketRooms', Object.keys(socket.rooms))
+        this.logger.info('socketRooms', [...socket.rooms])
       })
 
       /**
@@ -121,19 +121,8 @@ export class WebSockets {
 
             if (rooms) {
               rooms.forEach(room => {
-                socket.join(this.getSessionName(room), err => {
-                  if (err) {
-                    this.logger.error(
-                      'An error has ocurred during the connection with the room.'
-                    )
-
-                    this.logger.error(err)
-                  } else {
-                    this.logger.info('Join into', {
-                      room: this.getSessionName(room)
-                    })
-                  }
-                })
+                socket.join(this.getSessionName(room))
+                this.logger.info('Join into', { room: this.getSessionName(room) })
 
                 this.stream.to(ROOMS.CLASSROOM).emit(EVENT.USER_JOIN_ROOM, {
                   connected: true,

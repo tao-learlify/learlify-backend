@@ -34,7 +34,7 @@ export default class ChatGateway extends Socket {
           room: payload.room
         })
 
-        socket.to(payload.room).broadcast.emit(CHAT_MESSAGE, payload)
+        socket.to(payload.room).emit(CHAT_MESSAGE, payload)
       })
 
       /**
@@ -44,7 +44,7 @@ export default class ChatGateway extends Socket {
       socket.on(TYPING_MESSAGE, payload => {
         this.logger.debug('Typing Message Event: ', payload)
 
-        socket.to(payload.room).broadcast.emit(TYPING_MESSAGE, payload)
+        socket.to(payload.room).emit(TYPING_MESSAGE, payload)
       })
 
       /**
@@ -55,7 +55,7 @@ export default class ChatGateway extends Socket {
       socket.on(FILE_UPLOAD_STREAM, payload => {
         this.logger.debug('Attaching File Event: ', payload)
 
-        socket.to(payload.room).broadcast.emit(FILE_ATTACH_STREAM, payload)
+        socket.to(payload.room).emit(FILE_ATTACH_STREAM, payload)
       })
 
       /**
@@ -63,16 +63,9 @@ export default class ChatGateway extends Socket {
        * Joining to chatroom Event.
        */
       socket.on(JOIN_CHAT_ROOM, payload => {
-        
-        socket.join(payload.room, err => {
-          if (err) {
-            this.logger.error(err)
-          }
-
-          this.logger.info('Joining to '.concat(payload.room))
-
-          this.socket.to(payload.room).emit(JOIN_CHAT_ROOM, { ping: true })
-        })
+        socket.join(payload.room)
+        this.logger.info('Joining to '.concat(payload.room))
+        this.socket.to(payload.room).emit(JOIN_CHAT_ROOM, { ping: true })
       })
     })
   }
