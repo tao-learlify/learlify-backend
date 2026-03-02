@@ -2,6 +2,7 @@ import { AuthenticationService } from './authentication.service'
 import { UsersService } from 'api/users/users.service'
 import { RolesService } from 'api/roles/roles.services'
 import { MailService } from 'api/mails/mails.service'
+import { addToBlocklist } from 'api/jwt/jwt.blocklist'
 import { Roles } from 'metadata/roles'
 import { ConfigService } from 'api/config/config.service'
 import {
@@ -624,6 +625,21 @@ export class AuthenticationController {
       response: {
         token
       },
+      statusCode: 200
+    })
+  }
+
+  @Bind
+  async logout(req, res) {
+    const authHeader = req.headers['authorization'] || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+    if (token) {
+      await addToBlocklist(token)
+    }
+
+    return res.status(200).json({
+      message: 'Logged out successfully',
       statusCode: 200
     })
   }

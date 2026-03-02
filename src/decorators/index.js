@@ -3,6 +3,7 @@ import express from 'express'
 import { Logger } from 'api/logger'
 import { Middleware } from 'middlewares'
 import { ConfigService } from 'api/config/config.service'
+import { lockAndRun } from 'common/cronLock'
 
 /**
  * @param {Function} _target
@@ -21,7 +22,19 @@ function CronSchedule(Tasks) {
   return class Schedule extends Tasks {
     constructor() {
       super()
-      this.trigger = cron
+
+      const lockTtlMs = parseInt(process.env.REDIS_LOCK_TTL_MS || '30000', 10)
+
+      this.trigger = {
+        schedule(expression, callback, options) {
+          const key = `${Tasks.name}:${expression}`
+          return cron.schedule(
+            expression,
+            () => lockAndRun(key, lockTtlMs, callback),
+            options
+          )
+        }
+      }
     }
   }
 }

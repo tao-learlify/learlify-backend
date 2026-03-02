@@ -73,6 +73,12 @@ export class AuthenticationRouter {
 
     this.auth.get('/demo', Middleware.secure(this.controller.demoUser))
 
+    this.auth.post(
+      '/logout',
+      [Middleware.authenticate],
+      Middleware.secure(this.controller.logout)
+    )
+
     return {
       route: '/auth',
       handlers: this.auth

@@ -14,9 +14,12 @@ import { prodErrors, devErrors } from 'middlewares/handlers'
 import logger from 'utils/logger'
 import './config/db'
 import stripeWebhook from 'api/stripe/stripe.webhook'
+import healthRouter from 'api/health/health.routes'
+import metricsRouter from 'api/metrics/metrics.routes'
 
 import { Scheduler } from 'common/cron'
 import { WebSockets } from 'gateways/socket'
+import { closeRedisClient } from 'config/redis'
 
 import { MODE } from 'common/process'
 import { TASKS } from 'common/tasks'
@@ -70,6 +73,8 @@ app.set('port', config.APP_PORT)
 app.set('host', config.APP_HOST)
 
 app.use(stripeWebhook)
+app.use(healthRouter)
+app.use(metricsRouter)
 
 rootMiddleware.forEach(middleware => {
   if (process.env.NODE_ENV !== MODE.test) {
@@ -165,7 +170,10 @@ process.on('uncaughtException', err => {
 })
 
 process.on('SIGTERM', () => {
-  server.close(() => process.exit(0))
+  server.close(async () => {
+    await closeRedisClient()
+    process.exit(0)
+  })
 })
 
 export { app as server, Sockets, stream }

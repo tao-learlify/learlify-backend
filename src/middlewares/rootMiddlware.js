@@ -11,6 +11,7 @@ import config from 'config'
 import { validationErrorHandler } from './handlers'
 import { globalLimiter } from './rateLimit'
 import requestId from './requestId'
+import { metricsCollector } from './metricsCollector'
 
 const corsOptions = {
   origin: config.AUTHORIZED_ORIGINS,
@@ -24,6 +25,7 @@ const corsOptions = {
  */
 const rootMiddleware = [
   requestId,
+  metricsCollector,
   helmet(),
   cors(corsOptions),
   globalLimiter,
