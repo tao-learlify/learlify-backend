@@ -33,25 +33,29 @@ async function probeRedis() {
   }
 }
 
-router.get('/health', async (_req, res) => {
-  const [dbProbe, redisProbe] = await Promise.all([probeDb(), probeRedis()])
+router.get('/health', async (_req, res, next) => {
+  try {
+    const [dbProbe, redisProbe] = await Promise.all([probeDb(), probeRedis()])
 
-  const isDown = dbProbe.status === 'down'
-  const isDegraded = !isDown && redisProbe.status === 'down'
+    const isDown = dbProbe.status === 'down'
+    const isDegraded = !isDown && redisProbe.status === 'down'
 
-  const overall = isDown ? 'down' : isDegraded ? 'degraded' : 'ok'
+    const overall = isDown ? 'down' : isDegraded ? 'degraded' : 'ok'
 
-  const statusCode = isDown ? 503 : 200
+    const statusCode = isDown ? 503 : 200
 
-  return res.status(statusCode).json({
-    status: overall,
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    checks: {
-      database: dbProbe,
-      redis: redisProbe
-    }
-  })
+    return res.status(statusCode).json({
+      status: overall,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: dbProbe,
+        redis: redisProbe
+      }
+    })
+  } catch (err) {
+    return next(err)
+  }
 })
 
 export default router

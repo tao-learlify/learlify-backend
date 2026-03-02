@@ -250,16 +250,18 @@ final.
 
 **Cambios:**
 
-1. `src/api/health/health.routes.js` — agregar try/catch externo al handler
-   (beneficio: comportamiento predecible si algún probe inesperadamente rechaza)
-2. `src/api/metrics/metrics.routes.js` — ya tiene try/catch, validar que el
-   catch llama `next(err)` en lugar de responder duplicado (revisión)
-3. Actualizar este documento con fecha de resolución
+1. `src/api/health/health.routes.js` — añadido `next` como tercer parámetro y
+   envuelto el cuerpo del handler en try/catch que llama `next(err)`. La lógica de
+   probes internos no cambia.
+2. `src/api/metrics/metrics.routes.js` — **sin cambios** (ya tiene try/catch propio
+   que responde con 500 antes de que Express 5 propague). El catch no llama
+   `next(err)` pero tampoco produce doble respuesta.
+3. Documento actualizado con fecha de resolución.
 
 **Checklist de QA:**
-- [ ] Mismos tests, mismos resultados
-- [ ] Comportamiento de `/health` sin Redis → `{ status: 'degraded' }` (sin cambio)
-- [ ] Comportamiento de `/health` sin DB → `{ status: 'down' }`, 503 (sin cambio)
+- [x] Mismos tests, mismos resultados (87 passed / 2 failed pre-existing)
+- [x] Comportamiento de `/health` sin Redis → `{ status: 'degraded' }` (sin cambio)
+- [x] Comportamiento de `/health` sin DB → `{ status: 'down' }`, 503 (sin cambio)
 
 ---
 
@@ -686,6 +688,6 @@ git checkout main -- package.json package-lock.json && npm ci && npm run build
 | Fecha | Evento |
 |---|---|
 | 2026-03-02 | Auditoría completa + documento creado |
-| — | PR-A merged |
-| — | PR-B merged |
-| — | PR-C merged |
+| 2026-03-02 | PR-A: devErrors fix + integration tests (commit `82d3e58`) |
+| 2026-03-02 | PR-B: Express 5.2.1 + stripe fix + jestResolver (commit `7c00d09`) |
+| 2026-03-02 | PR-C: health.routes.js hardening (este commit) |
