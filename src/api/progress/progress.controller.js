@@ -23,7 +23,7 @@ import { v4 as UUID } from 'uuid'
 
 class ProgressController {
   constructor() {
-    this.s3 = new AmazonWebServices().s3
+    this.aws = new AmazonWebServices()
     this.categoryService = new CategoriesService()
     this.packagesService = new PackagesService()
     this.progressService = new ProgressService()
@@ -149,15 +149,13 @@ class ProgressController {
       if (data.uuid === uuid && name in data) {
         const { dir, model } = progress.exam
 
-        const context = await this.s3
-          .getObject({
-            Bucket: process.env.AWS_BUCKET,
-            Key: cloudfrontURL(dir)
-          })
-          .promise()
+        const body = await this.aws.getObjectBody({
+          Bucket: process.env.AWS_BUCKET,
+          Key: cloudfrontURL(dir)
+        })
 
         const { exercises } = parseContent({
-          data: context.Body.toString(),
+          data: body.toString(),
           key: name
         })
 

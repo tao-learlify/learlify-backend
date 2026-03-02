@@ -46,7 +46,7 @@ class ProgressService {
         exam: true
       }
     }
-    this.s3 = new AmazonWebServices().s3
+    this.aws = new AmazonWebServices()
     this.config = new ConfigService().provider
     this.context = new NotificationContext()
   }
@@ -161,13 +161,11 @@ class ProgressService {
            * @type {import ('aws-sdk').S3.PutObjectOutput []}
            */
           const requests = ref.recordings.map(recording =>
-            this.s3
-              .upload({
-                Body: recording.buffer,
-                Key: `speakings/${recording.originalname}`,
-                Bucket: state.bucket
-              })
-              .promise()
+            this.aws.upload({
+              Body: recording.buffer,
+              Key: `speakings/${recording.originalname}`,
+              Bucket: state.bucket
+            })
           )
 
           /**
@@ -343,14 +341,12 @@ class ProgressService {
            * Deleting the file that has been previously commited.
            * @see https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/S3.html#deleteObjects-property
            */
-          await this.s3
-            .deleteObjects({
-              Bucket: state.bucket,
-              Delete: {
-                Objects: stored
-              }
-            })
-            .promise()
+          await this.aws.deleteObjects({
+            Bucket: state.bucket,
+            Delete: {
+              Objects: stored
+            }
+          })
         }
 
         return {

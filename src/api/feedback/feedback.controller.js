@@ -25,7 +25,7 @@ class FeedbackController {
     this.progressService = new ProgressService()
     this.statsService = new StatsService()
     this.packagesService = new PackagesService()
-    this.s3 = new AmazonWebServices().s3
+    this.aws = new AmazonWebServices()
     this.logger = Logger.Service
   }
 
@@ -55,12 +55,10 @@ class FeedbackController {
     if (progress) {
       const { dir } = progress.exam
 
-      const context = await this.s3
-        .getObject({
-          Bucket: process.env.AWS_BUCKET,
-          Key: cloudfrontURL(dir)
-        })
-        .promise()
+      const body = await this.aws.getObjectBody({
+        Bucket: process.env.AWS_BUCKET,
+        Key: cloudfrontURL(dir)
+      })
 
       const category = await this.categoriesService.getOne({
         id: categoryId
@@ -83,7 +81,7 @@ class FeedbackController {
         const { data } = progress
 
         const { exercises } = parseContent({
-          data: context.Body.toString(),
+          data: body.toString(),
           key: category.name
         })
 

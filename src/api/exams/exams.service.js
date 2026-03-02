@@ -13,7 +13,7 @@ class ExamsService {
   #relation
 
   constructor() {
-    this.s3 = new AmazonWebServices().s3
+    this.aws = new AmazonWebServices()
 
     this.#relation = {
       getOne: {
@@ -48,16 +48,14 @@ class ExamsService {
         }
       })
 
-    const file = await this.s3
-      .getObject({
-        Bucket: process.env.AWS_BUCKET,
-        Key: `${Exam.tableName}/${exam.version}/${exam.dir}`
-      })
-      .promise()
+    const body = await this.aws.getObjectBody({
+      Bucket: process.env.AWS_BUCKET,
+      Key: `${Exam.tableName}/${exam.version}/${exam.dir}`
+    })
 
-    if (category && file?.Body) {
+    if (category && body) {
       const { exercises } = parseContent({
-        data: file.Body.toString(),
+        data: body.toString(),
         key: decodeURIComponent(category)
       })
 
@@ -68,7 +66,7 @@ class ExamsService {
     }
 
     try {
-      return JSON.parse(file?.Body.toString())
+      return JSON.parse(body.toString())
     } catch (err) {
       return []
     }
