@@ -39,7 +39,7 @@
     "redlock": "^5.0.0-beta.2",
     "socket.io": "^2.3.0",
     "stripe": "^8.135.0",
-    "superagent": "^6.1.0",
+    "superagent": "^9.0.2",
     "twilio": "^3.56.0",
     "uniqid": "^5.0.3",
     "uuid": "^9.0.1",
