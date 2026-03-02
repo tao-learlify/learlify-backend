@@ -53,14 +53,19 @@ export class WebSockets {
         return next(new Error('unauthorized'))
       }
 
-      jwt.verify(token, config.JWT_SECRET, { algorithms: ['HS256'] }, (err, decoded) => {
-        if (err) {
-          return next(new Error('unauthorized'))
-        }
+      jwt.verify(
+        token,
+        config.JWT_SECRET,
+        { algorithms: ['HS256'] },
+        (err, decoded) => {
+          if (err) {
+            return next(new Error('unauthorized'))
+          }
 
-        socket.user = decoded
-        next()
-      })
+          socket.user = decoded
+          next()
+        }
+      )
     })
 
     /**
@@ -122,7 +127,9 @@ export class WebSockets {
             if (rooms) {
               rooms.forEach(room => {
                 socket.join(this.getSessionName(room))
-                this.logger.info('Join into', { room: this.getSessionName(room) })
+                this.logger.info('Join into', {
+                  room: this.getSessionName(room)
+                })
 
                 this.stream.to(ROOMS.CLASSROOM).emit(EVENT.USER_JOIN_ROOM, {
                   connected: true,

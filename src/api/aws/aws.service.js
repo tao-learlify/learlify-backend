@@ -11,7 +11,7 @@ import { ConfigService } from 'api/config/config.service'
 import { generateDateFileName, sanitizeFile } from 'functions'
 import { s3Client } from './s3.client'
 
-const streamToBuffer = async (stream) => {
+const streamToBuffer = async stream => {
   const chunks = []
   for await (const chunk of stream) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))

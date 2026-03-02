@@ -69,7 +69,7 @@ const REQUIRED_ENV = [
   ['TWILIO_API_KEY_SECRET', 'Twilio video calls will not work'],
   ['AWS_ACCESS_KEY', 'AWS S3 uploads will not work'],
   ['AWS_SECRET_KEY', 'AWS S3 uploads will not work'],
-  ['AWS_REGION',     'AWS S3 region must be explicit in SDK v3']
+  ['AWS_REGION', 'AWS S3 region must be explicit in SDK v3']
 ]
 
 const hasSendgrid =
