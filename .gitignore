@@ -4,3 +4,5 @@ cert.pem
 key.pem
 src/[Ll]ogs/*
 backup.sql
+# Backups SQL de inicialización Docker (contienen datos sensibles)
+db/init/*.sql
