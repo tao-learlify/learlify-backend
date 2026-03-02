@@ -9,12 +9,22 @@ jest.mock('decorators', () => ({
 
 jest.mock('utils/logger', () => ({
   __esModule: true,
-  default: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn()
+  }
 }))
 
 jest.mock('api/logger', () => ({
   Logger: {
-    Service: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }
+    Service: {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    }
   }
 }))
 
@@ -31,7 +41,11 @@ jest.mock('api/config/config.service', () => ({
 }))
 
 jest.mock('api/users/users.service', () => {
-  const instance = { getOne: jest.fn(), create: jest.fn(), updateOne: jest.fn() }
+  const instance = {
+    getOne: jest.fn(),
+    create: jest.fn(),
+    updateOne: jest.fn()
+  }
   const UsersService = jest.fn(() => instance)
   UsersService.__instance = instance
   return { UsersService }
@@ -50,7 +64,10 @@ jest.mock('api/mails/mails.service', () => ({
 }))
 
 jest.mock('api/mails', () => ({
-  sendgridConfig: { domain: 'https://test.aptis.com', email: 'noreply@test.com' }
+  sendgridConfig: {
+    domain: 'https://test.aptis.com',
+    email: 'noreply@test.com'
+  }
 }))
 
 jest.mock('api/jwt/jwt.blocklist', () => ({
@@ -78,7 +95,14 @@ function makeRes() {
 }
 
 function makeReq(overrides = {}) {
-  return { body: {}, query: {}, headers: {}, locale: 'en', user: null, ...overrides }
+  return {
+    body: {},
+    query: {},
+    headers: {},
+    locale: 'en',
+    user: null,
+    ...overrides
+  }
 }
 
 describe('AuthenticationController', () => {
@@ -107,7 +131,9 @@ describe('AuthenticationController', () => {
       await controller.signIn(req, res)
 
       expect(res.status).toHaveBeenCalledWith(200)
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ statusCode: 200 }))
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ statusCode: 200 })
+      )
     })
 
     it('throws when password does not match', async () => {
@@ -172,7 +198,12 @@ describe('AuthenticationController', () => {
       users.getOne.mockResolvedValue({ id: 1, email: 'exists@t.com' })
 
       const req = makeReq({
-        body: { email: 'exists@t.com', firstName: 'A', lastName: 'B', password: 'pw' }
+        body: {
+          email: 'exists@t.com',
+          firstName: 'A',
+          lastName: 'B',
+          password: 'pw'
+        }
       })
       const res = makeRes()
 
@@ -181,13 +212,16 @@ describe('AuthenticationController', () => {
 
     it('creates user and returns 201 for a new email', async () => {
       const user = { id: 5, email: 'new@t.com', firstName: 'A', lastName: 'B' }
-      users.getOne
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(user)
+      users.getOne.mockResolvedValueOnce(null).mockResolvedValueOnce(user)
       users.create.mockResolvedValue(user)
 
       const req = makeReq({
-        body: { email: 'new@t.com', firstName: 'A', lastName: 'B', password: 'pw' }
+        body: {
+          email: 'new@t.com',
+          firstName: 'A',
+          lastName: 'B',
+          password: 'pw'
+        }
       })
       const res = makeRes()
 
@@ -199,7 +233,9 @@ describe('AuthenticationController', () => {
 
   describe('refreshToken()', () => {
     it('returns 200 with new token for a valid token', async () => {
-      const token = jwt.sign({ id: 5, email: 'u@t.com' }, SECRET, { expiresIn: '1h' })
+      const token = jwt.sign({ id: 5, email: 'u@t.com' }, SECRET, {
+        expiresIn: '1h'
+      })
       users.getOne.mockResolvedValue({ id: 5, email: 'u@t.com' })
 
       const req = makeReq({ body: { token } })
@@ -254,7 +290,9 @@ describe('AuthenticationController', () => {
     })
 
     it('throws NotFoundException when verified email is not in DB', async () => {
-      const code = jwt.sign({ email: 'ghost@t.com' }, SECRET, { expiresIn: '1d' })
+      const code = jwt.sign({ email: 'ghost@t.com' }, SECRET, {
+        expiresIn: '1d'
+      })
       users.getOne.mockResolvedValue(null)
 
       const req = makeReq({ query: { code } })
@@ -298,7 +336,9 @@ describe('AuthenticationController', () => {
     })
 
     it('updates password and returns 201 for a valid code', async () => {
-      const code = jwt.sign({ id: 7, email: 'r@t.com' }, SECRET, { expiresIn: '1d' })
+      const code = jwt.sign({ id: 7, email: 'r@t.com' }, SECRET, {
+        expiresIn: '1d'
+      })
       const user = { id: 7, email: 'r@t.com' }
       users.getOne.mockResolvedValue(user)
       users.updateOne.mockResolvedValue(user)

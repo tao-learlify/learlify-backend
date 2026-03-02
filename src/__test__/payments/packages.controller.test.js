@@ -9,12 +9,22 @@ jest.mock('decorators', () => ({
 
 jest.mock('utils/logger', () => ({
   __esModule: true,
-  default: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }
+  default: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn()
+  }
 }))
 
 jest.mock('api/logger', () => ({
   Logger: {
-    Service: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }
+    Service: {
+      info: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn()
+    }
   }
 }))
 
@@ -196,7 +206,13 @@ describe('PackagesController', () => {
 
     it('throws NotFoundException when packagesService.create returns falsy', async () => {
       usersService.getOne.mockResolvedValue({ id: 2, email: 'u@t.com' })
-      plansService.getOne.mockResolvedValue({ id: 1, name: 'Plan', writing: 1, speaking: 1, classes: 1 })
+      plansService.getOne.mockResolvedValue({
+        id: 1,
+        name: 'Plan',
+        writing: 1,
+        speaking: 1,
+        classes: 1
+      })
       packagesService.create.mockResolvedValue(null)
 
       const req = makeReq({ query: { userId: '2', planId: '1' } })
@@ -208,11 +224,17 @@ describe('PackagesController', () => {
 
   describe('create()', () => {
     it('returns 500 with cancelled flag when transaction is cancelled', async () => {
-      packagesService.createTransactionablePackage.mockResolvedValue({ cancelled: true })
+      packagesService.createTransactionablePackage.mockResolvedValue({
+        cancelled: true
+      })
 
       const req = makeReq({
         query: { planId: '1' },
-        body: { paymentMethodId: 'pm_test', requiresAction: false, cancel: false }
+        body: {
+          paymentMethodId: 'pm_test',
+          requiresAction: false,
+          cancel: false
+        }
       })
       const res = makeRes()
 
@@ -222,11 +244,17 @@ describe('PackagesController', () => {
     })
 
     it('returns 500 when transaction results in an error', async () => {
-      packagesService.createTransactionablePackage.mockResolvedValue({ error: true })
+      packagesService.createTransactionablePackage.mockResolvedValue({
+        error: true
+      })
 
       const req = makeReq({
         query: { planId: '1' },
-        body: { paymentMethodId: 'pm_test', requiresAction: false, cancel: false }
+        body: {
+          paymentMethodId: 'pm_test',
+          requiresAction: false,
+          cancel: false
+        }
       })
       const res = makeRes()
 
@@ -293,7 +321,10 @@ describe('PackagesController', () => {
     it('returns 201 with evaluation when needsRevision is true and active package exists', async () => {
       categoriesService.getOne.mockResolvedValue({ id: 1, name: 'Writing' })
       packagesService.getAll.mockResolvedValue([{ id: 1, isActive: true }])
-      packagesService.getActiveSubscription.mockResolvedValue({ id: 1, writings: 2 })
+      packagesService.getActiveSubscription.mockResolvedValue({
+        id: 1,
+        writings: 2
+      })
       packagesService.updateAndCreateEvaluation.mockResolvedValue({
         evaluation: { id: 1 },
         update: { id: 1, writings: 1 }
