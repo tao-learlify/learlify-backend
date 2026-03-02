@@ -350,7 +350,7 @@ export class PackagesService {
    */
   async updateAndCreateEvaluation(data) {
     try {
-      const transaction = Package.knex().transaction(async trx => {
+      const transaction = await Package.knex().transaction(async trx => {
         const update = await Package.query(trx).patchAndFetchById(
           data.package.id,
           {

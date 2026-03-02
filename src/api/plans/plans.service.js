@@ -43,6 +43,8 @@ class PlansService {
   @Bind
   async getAll({ names, currency, ...options }) {
     if (names) {
+      if (names.length === 0) return []
+
       const plans = await Plan.query()
         .whereIn('name', names)
         .andWhere(function () {
