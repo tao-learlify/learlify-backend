@@ -199,6 +199,19 @@ npm audit --production --json > audit-baseline.json
 | `nodemon` | 1.19.1 | **3.1.x** | major | Low | Archivo de configuración `nodemon.json` valid; `--legacy-watch` removido | Node 18+ soporte; watch more reliable | No | `npm start` con hot-reload |
 | `eslint` | ^7.4.0 | **9.x** | major | Med | Config flat (`eslint.config.js`) reemplaza `.eslintrc`; muchas reglas movidas a plugins externos | Performance 30%+; nueva config API | Sí — `.eslintrc.js` o equiv.; `babel-eslint` reemplazar por `@babel/eslint-parser` | `npm run lint` sin errores |
 | `rimraf` | 2.6.3 | **6.x** | major | Low | CLI flags cambian; `--glob` explícito | Windows path-length fix | Sí — scripts en package.json con `rimraf dist` | `npm run build` exitoso |
+| **`immutable`** | **^4.0.0-rc.12** | **4.3.7** | patch | **Med** | **Release candidate en producción.** API estable desde 4.0.0 sin cambios — solo sacar la `-rc` | Elimina riesgo de bug silencioso de RC | No | `npm test`; verificar uso de `Map`, `List`, `Record` en el código |
+| `lodash` | ^4.17.20 | **4.17.21** | patch | Low | Ninguno — solo fix de prototype pollution (`CVE-2021-23337` en versiones < 4.17.21) | Cierra CVE-2021-23337 (command injection vía `_.template`) | No | `npm test` |
+| `uuid` | ^8.3.2 | **9.0.1** | major | Low | `uuid.v1()` etc. siguen igual; paquete ahora es ESM-first con CJS compat; `v1()` deprecado en favor de `v4()`/`v7()` | ESM-first; `v7()` (time-ordered) disponible | Buscar `uuid` en `src/` — confirmar imports | `npm test` |
+| `moment` + `moment-timezone` | ^2.27.0 / ^0.5.31 | **Ver nota ↓** | — | Med | `moment` está en modo **legacy/mantenimiento** desde 2020. No recibirá nuevas features. La doc oficial recomienda migrar a `date-fns` o `luxon` | Reducción de bundle size (~70 KB gzip); API inmutable; tree-shaking | Buscar `moment(` en `src/` — cuantificar uso | Migración incremental; no upgrade sino reemplazo |
+| `express-validator` | ^6.5.0 | **7.2.x** | major | Low | Chain API reorganizada (`body('field').isEmail()` igual); algunos helpers de v6 renombrados | Validaciones async nativas; TypeScript mejorado | Buscar `check(`, `body(`, `validationResult(` en `src/` | `npm test` + smoke endpoints con validación |
+| `superagent` | ^6.1.0 | **9.0.2** | major×3 | Low | API de callbacks eliminada — solo Promises; `.then()` y `await` sin cambios | Node 18+ soporte; Promise-native | Buscar `require('superagent')` en `src/` | `npm test` |
+| `validator` | ^13.5.2 | **13.12.x** | minor | Low | Ninguno | Nuevos validadores; bug fixes | No | `npm test` |
+| `exchange-rates-api` | ^1.1.0 | **❌ Reemplazar** | — | **High** | Sin mantenimiento desde 2020; dependencia del servicio `api.exchangeratesapi.io` (requiere API key de pago) | — | Buscar uso en `src/` | Evaluar `frankfurter` API (gratuita) o `open-exchange-rates` |
+| `uniqid` | ^5.0.3 | **❌ Reemplazar** | — | Med | Sin mantenimiento desde 2019 (last publish). Reemplazar por `crypto.randomUUID()` (Node 15+) o `uuid@9` | Elimina dependencia muerta | Buscar `uniqid(` en `src/` | `npm test` tras reemplazo |
+| `geoip-lite` | ^1.4.2 | **1.4.10** | minor | Low | API sin cambios; base de datos GeoIP actualizada | Base de datos MaxMind más reciente | No | Prueba `geoip.lookup(ip)` en `middleware` |
+| `generate-password` | ^1.6.0 | **1.7.x** | minor | Low | API compatible | Bug fixes menores | No | `npm test` (uso en `generateRandomPassword()`) |
+| `compression` | ^1.7.4 | **1.7.4** | — | None | Ya en latest | — | No | — |
+| `morgan` | ^1.10.0 | **1.10.0** | — | None | Ya en latest | — | No | — |
 
 ---
 
@@ -680,6 +693,14 @@ npm install passport@0.4.0
 | `passport-jwt` | 4.0.0 | 4.0.1 | patch |
 | `winston` | 3.2.1 | 3.17.x | minor |
 | `winston-daily-rotate-file` | 3.10.0 | 5.x | major |
+| `immutable` | 4.0.0-rc.12 | **4.3.7** | patch — **RC en prod** |
+| `lodash` | 4.17.20 | **4.17.21** | patch — CVE-2021-23337 |
+| `uuid` | 8.3.2 | **9.0.1** | major — bajo riesgo |
+| `validator` | 13.5.2 | **13.12.x** | minor |
+| `express-validator` | 6.5.0 | **7.2.x** | major — bajo riesgo |
+| `superagent` | 6.1.0 | **9.0.2** | major — bajo riesgo |
+| `geoip-lite` | 1.4.2 | **1.4.10** | minor |
+| `generate-password` | 1.6.0 | **1.7.x** | minor |
 
 **Pasos**
 
@@ -687,10 +708,21 @@ npm install passport@0.4.0
 # 1. Crear branch
 git checkout -b upgrade/wave-1-security
 
-# 2. Instalar
+# 2. Instalar paquetes de seguridad crítica
 npm install jsonwebtoken@9.0.3 multer@1.4.5-lts.1 mysql@2.18.1 \
   bcrypt@5.1.1 dotenv@16 passport-jwt@4.0.1 \
   winston@3 winston-daily-rotate-file@5
+
+# 3. Instalar low-risk patches / minor upgrades adicionales
+npm install \
+  immutable@4.3.7 \
+  lodash@4.17.21 \
+  uuid@9 \
+  validator@13 \
+  express-validator@7 \
+  superagent@9 \
+  geoip-lite@1 \
+  generate-password@1.7
 
 # 3. Verificar que la config de jwt.service.js especifica algoritmo en verify()
 # Requiere ver código: confirmar algorithms: ['HS256'] en jwt.guard.js
@@ -719,6 +751,73 @@ git add -A && git commit -m "chore(deps): wave-1 security upgrades"
 - `npm test` → 0 failed
 - Login devuelve token JWT válido
 - `docker compose logs app` → "Server has been started" sin errores
+
+---
+
+### Wave 1b — Reemplazos de dependencias abandonadas (1–3 días)
+
+**Objetivo**: Eliminar paquetes sin mantenimiento que representan riesgo de seguridad y deuda técnica.
+
+**Paquetes a reemplazar**
+
+| Paquete | Versión actual | Acción | Reemplazo sugerido | Riesgo |
+|---|---|---|---|---|
+| `exchange-rates-api` | ^1.1.0 | **❌ Eliminar** | [`frankfurter`](https://www.frankfurter.app/) (gratuito, sin API key) o [`open-exchange-rates`](https://openexchangerates.org/) | High — sin mantenimiento desde 2020 |
+| `uniqid` | ^5.0.3 | **❌ Eliminar** | `crypto.randomUUID()` (Node 15+ nativo) o `uuid@9` | Med — sin mantenimiento desde 2019 |
+| `moment` + `moment-timezone` | ^2.27.0 / ^0.5.31 | **⚠️ Migrar** | [`date-fns`](https://date-fns.org/) + [`date-fns-tz`](https://github.com/marnusw/date-fns-tz) o [`luxon`](https://moment.github.io/luxon/) | Med — modo legacy/mantenimiento desde 2020 |
+
+**Pasos — `exchange-rates-api`**
+
+```bash
+# 1. Crear branch
+git checkout -b upgrade/wave-1b-removals
+
+# 2. Buscar todos los usos
+grep -r "exchange-rates-api\|ExchangeRates\|exchangeRates" src/ --include="*.js"
+
+# 3. Reemplazar con frankfurter (ejemplo)
+npm uninstall exchange-rates-api
+# Nuevo client (no requiere npm install, usa fetch nativo o node-fetch)
+# GET https://api.frankfurter.app/latest?from=USD&to=EUR
+```
+
+**Pasos — `uniqid`**
+
+```bash
+# Buscar usos
+grep -r "uniqid\|require('uniqid')" src/ --include="*.js"
+
+# Reemplazar (Node 18 tiene crypto.randomUUID() global)
+npm uninstall uniqid
+# En código: const id = crypto.randomUUID();
+# O: import { v4 as uuidv4 } from 'uuid'; (uuid ya está en deps)
+```
+
+**Pasos — `moment` (migración incremental)**
+
+```bash
+# Cuantificar impacto
+grep -rn "require('moment')\|from 'moment'\|moment(" src/ --include="*.js" | wc -l
+
+# Instalar reemplazo (date-fns recomendado: modular, tree-shakeable, inmutable)
+npm install date-fns date-fns-tz
+
+# Después de migrar todos los usos:
+npm uninstall moment moment-timezone
+
+# Guía rápida de equivalencias:
+# moment().format('YYYY-MM-DD')       → format(new Date(), 'yyyy-MM-dd')
+# moment(str).isValid()               → isValid(parseISO(str))
+# moment().add(7, 'days')             → addDays(new Date(), 7)
+# moment.tz(date, tz).format(...)     → formatInTimeZone(date, tz, ...)
+```
+
+**Criterios de aceptación**
+
+- `grep -r "exchange-rates-api\|uniqid" src/` → 0 matches
+- `npm test` → 0 failed
+- `npm audit --production` → sin nuevas vulnerabilidades
+- Smoke test manual de endpoints que usan conversión de moneda / IDs únicos
 
 ---
 
