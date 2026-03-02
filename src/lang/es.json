@@ -1,0 +1,159 @@
+{
+	"mails": {
+		"services": {
+			"assignPackage": {
+				"html": {
+					"enjoy": "Disfruta de tu paquete {{plan}} durante 1 mes."
+				},
+				"subject": "Te hemos asignado un paquete en AptisGo",
+				"text": "¡Hola {{user}} te hemos asignado un paquete en AptisGo!"
+			},
+			"createPackage": {
+				"html": {
+					"access": "Accede a nuestra plataforma",
+					"confirm": "Te confirmamos que tienes activo el paquete",
+					"must": "Si aprobar quieres, practicar debes.",
+					"practice": "Aprovecha para practicar todo lo que puedas."
+				},
+				"subject": "Confirmación de pago",
+				"text": "Estimado {{user}}"
+			},
+			"createUser": {
+				"html": {
+					"assign": "Accede a tu cuenta ingresando el siguiente link, y a continuación, ingresa tu correo electrónico y la contraseña que te hemos facilitado",
+					"password": "Tu contraseña es",
+					"url": "<a href='https://aptisgo.b1b2.es/'>https://aptisgo.b1b2.es/</a>"
+				},
+				"subject": "Bienvenido a AptisGo",
+				"text": "Estimado {{user}} aquí está su contraseña"
+			},
+			"evaluation": {
+				"subject": "Estimado {{user}} hemos entregado tus resultados en AptisGo",
+				"text": "Hola {{user}}, hemos entregado tus resultados en Aptis"
+			},
+			"gift": {
+				"from": {
+					"html": {
+						"community": "Gracias por formar parte de nuestra comunidad, el equipo AptisGo.",
+						"gift": "Hiciste un gesto muy amable de tu parte enviando un regalo a un amigo."
+					},
+					"subject": "¡Has enviado un regalo en AptisGo!",
+					"text": "Estimado {{user}} tu regalo se ha enviado correctamente"
+				},
+				"registered": {
+					"html": {
+						"enjoy": "Disfruta de tu paquete {{plan}} durante 1 mes.",
+						"membership": "¡Ingresa a Aptis ahora, y prueba tu membresía!",
+						"taken": "Hola estimado, {{user}} el usuario {{gifter}} te ha concedido un regalo en Aptis"
+					},
+					"subject": "¡Has recibido un regalo en Aptis!",
+					"text": "Estimado {{user}} has recibido un regalo"
+				},
+				"to": {
+					"html": {
+						"code": "Este código solo es válido para tu cuenta.",
+						"invite": "El usuario {{user}} tiene el placer de invitarte a una subscripción de pago para utilizar la plataforma de exámenes de Aptis durante un mes.",
+						"steps": {
+							"1": "1. Para poder canjear el paquete ingresa en:",
+							"2": "2. Si no tienes cuenta todavía puedes crearla gratuitamente.",
+							"3": "3. Una vez dentro en la esquina superior derecha abriendo el menu de los 3 puntos podrás encontrar la opción de canjear.",
+							"4": "4. Introduce el siguiente código para validar tu paquete.",
+							"5": "5. Disfruta!"
+						},
+						"team": "Equipo de AptisGo"
+					},
+					"subject": "Bienvenido a AptisGo",
+					"text": "Estimado {{user}} has recibido un regalo"
+				}
+			},
+			"googleSignUp": {
+				"html": {
+					"password": "Tu contraseña es"
+				},
+				"subject": "Bienvenido a AptisGo",
+				"text": "Estimado {{user}}, aquí está tu contraseña"
+			},
+			"notifyExpiration": {
+				"html": {
+					"notify": "¡Tu paquete está a punto de vencer! Te quedan pocos días. Puedes renovar tu paquete accediendo al siguiente link:",
+					"practice": "Animo, practica un poco más antes de presentarte a tu convocatoria de Aptis."
+				},
+				"subject": "Paquete a punto de vencimiento",
+				"text": "Estimado {{user}}"
+			},
+			"packageExpiration": {
+				"text": "Estimado {{user}} tu paquete de Aptis ha expirado.",
+				"subject": "¡Tu paquete ha expirado!",
+				"html": {
+					"purchase": "Renueva tu paquete en",
+					"expiration": "Estimado {{user}} tu paquete de Aptis ha expirado"
+				}
+			},
+			"resetPassword": {
+				"greet": "mails.services.resetPassword.greet",
+				"html": {
+					"greet": "Hola {{user}} aquí está el enlace de recuperación",
+					"practice": "Si aprobar quieres, practicar debes. Dale caña y saca lo mejor de ti.",
+					"team": "Equipo de AptisGo"
+				},
+				"practice": "mails.services.resetPassword.practice",
+				"subject": "Hola {{user}} aquí está el enlace de recuperación",
+				"team": "mails.services.resetPassword.team",
+				"text": "Hola {{user}} aquí está el enlace de recuperación"
+			},
+			"signUp": {
+				"html": {
+					"practice": "El que aprobar quiere, practicar debe!",
+					"team": "Equipo de AptisGo",
+					"thanks": "Gracias por registrarte",
+					"verificate": "Verificar cuenta",
+					"verification": "Vertifica tu cuenta en la plataforma de Aptis en:"
+				},
+				"subject": "Bienvenido a AptisGo",
+				"text": "Por favor, dale click al siguiente link para confirmar tu cuenta."
+			},
+			"sigunUp": {
+				"html": {
+					"verificate": "mails.services.sigunUp.html.verificate",
+					"thanks": "mails.services.sigunUp.html.thanks",
+					"practice": "mails.services.sigunUp.html.practice",
+					"team": "mails.services.sigunUp.html.team"
+				}
+			}
+		}
+	},
+	"errors": {
+		"Advance Not Found": "Avance no encontrado",
+		"Category Not Found": "Categoría no encontrada",
+		"Classroom Not Found": "Sala de clases no encontrada",
+		"Evaluation Not Found": "Evaluación no encontrada",
+		"Exam Not Found": "Examen no encontrado",
+		"Package Not Found": "Paquete no encontrado",
+		"Plan Not Found": "Plan no encontrado",
+		"Role Not Found": "Rol no encontrado",
+		"Schedule Not Found": "Horario no encontrado",
+		"User Not Found": "Usuario no encontrado",
+		"User or plan not found": "Usuario o plan no encontrado",
+		"User already exists": "El correo electrónico ya está en uso",
+		"Invalid password or username": "Contraseña o usuario inválidos",
+		"Invalid Token Assignament or expired": "Token inválido o expirado",
+		"The account cannot be verified": "La cuenta no pudo ser verificada",
+		"Invalid Token": "Token inválido",
+		"Unauthorized Request": "Petición no autorizada",
+		"Room already exists": "La sala ya existe",
+		"The class-meeting is no longer available": "La reunión de clases ya no está disponible",
+		"Courses has not been registered yet": "Los cursos no han sido registrados todavía",
+		"A course with the ID provided couldnt be found": "Un curso con el ID provisto no pudo ser encontrado",
+		"User or progress doesnt exist": "El usuario o el progreso no existen",
+		"Unsuccessful response due to payment requirements": "Respuesta fallida debido a requerimientos de pagos",
+		"The Serial is invalid or the Gift does not exist": "El serial es inválido o el regalo no existe",
+		"The code has expired and the resource is no longer available": "El código ha expirado y el recurso ya no está disponible",
+		"The user is invalid or does not exist": "El usuario es inválido o no existe",
+		"The meeting doesnt exist": "La reunión no existe",
+		"The user doesnt belong to the classroom": "El usuario no pertenece a la sala de clases",
+		"Unauthorized": "No autorizado",
+		"Classroom is not streaming": "Sala de clases no transmitiendo",
+		"Feedback Not Found": "Feedback no está disponible",
+		"Model Not Found": "Model no encontrado"
+	}
+}

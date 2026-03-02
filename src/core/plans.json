@@ -1,0 +1,47 @@
+{
+  "EUR": {
+    "Blue": 2500,
+    "Green": 9500,
+    "Go": 900,
+    "Silver": 1200,
+    "Gold": 1500,
+    "Platinum": 2100,
+    "Curso": 1999
+  },
+  "USD": {
+    "Blue": 3000,
+    "Green": 11200,
+    "Go": 1100,
+    "Silver": 1500,
+    "Gold": 1800,
+    "Platinum": 2500,
+    "Curso": 2400
+  },
+  "CAD": {
+    "Blue": 3800,
+    "Green": 14100,
+    "Go": 1400,
+    "Silver": 1800,
+    "Gold": 2300,
+    "Platinum": 3200,
+    "Curso": 3100
+  },
+  "INR": {
+    "Blue": 216300,
+    "Green": 822000,
+    "Go": 77900,
+    "Silver": 103800,
+    "Gold": 129800,
+    "Platinum": 181700,
+    "Curso": 173000
+  },
+  "CNY": {
+    "Blue": 19400,
+    "Green": 73700,
+    "Go": 7000,
+    "Silver": 9400,
+    "Gold": 11700,
+    "Platinum": 16300,
+    "Curso": 15600
+  }
+}

@@ -1,0 +1,146 @@
+{
+  "mails": {
+    "services": {
+      "assignPackage": {
+        "html": {
+          "enjoy": "Testing Italiano"
+        },
+        "subject": "Testing Italiano",
+        "text": "¡Testing Italiano!"
+      },
+      "createPackage": {
+        "html": {
+          "access": "Accede a nuestra plataforma",
+          "confirm": "Te confirmamos que tienes activo el paquete",
+          "must": "Si aprobar quieres, practicar debes.",
+          "practice": "Aprovecha para practicar todo lo que puedas."
+        },
+        "subject": "Confirmación de pago",
+        "text": "Estimado {{user}}"
+      },
+      "createUser": {
+        "html": {
+          "assign": "Accede a tu cuenta ingresando el siguiente link, y a continuación, ingresa tu correo electrónico y la contraseña que te hemos facilitado",
+          "password": "Tu contraseña es",
+          "url": "<a href='https://aptisgo.b1b2.es/'>https://aptisgo.b1b2.es/</a>"
+        },
+        "subject": "Bienvenido a AptisGo",
+        "text": "Estimado {{user}} aquí está su contraseña"
+      },
+      "evaluation": {
+        "subject": "Estimado {{user}} hemos entregado tus resultados en AptisGo",
+        "text": "Hola {{user}}, hemos entregado tus resultados en Aptis"
+      },
+      "gift": {
+        "from": {
+          "html": {
+            "community": "Gracias por formar parte de nuestra comunidad, el equipo AptisGo.",
+            "gift": "Hiciste un gesto muy amable de tu parte enviando un regalo a un amigo."
+          },
+          "subject": "¡Has enviado un regalo en AptisGo!",
+          "text": "Estimado {{user}} tu regalo se ha enviado correctamente"
+        },
+        "registered": {
+          "html": {
+            "enjoy": "Disfruta de tu paquete {{plan}} durante 1 mes.",
+            "membership": "¡Ingresa a Aptis ahora, y prueba tu membresía!",
+            "taken": "Hola estimado, {{user}} el usuario {{gifter}} te ha concedido un regalo en Aptis"
+          },
+          "subject": "¡Has recibido un regalo en Aptis!",
+          "text": "Estimado {{user}} has recibido un regalo"
+        },
+        "to": {
+          "html": {
+            "code": "Este código solo es válido para tu cuenta.",
+            "invite": "El usuario {{user}} tiene el placer de invitarte a una subscripción de pago para utilizar la plataforma de exámenes de Aptis durante un mes.",
+            "steps": {
+              "1": "1. Para poder canjear el paquete ingresa en:",
+              "2": "2. Si no tienes cuenta todavía puedes crearla gratuitamente.",
+              "3": "3. Una vez dentro en la esquina superior derecha abriendo el menu de los 3 puntos podrás encontrar la opción de canjear.",
+              "4": "4. Introduce el siguiente código para validar tu paquete.",
+              "5": "5. Disfruta!"
+            },
+            "team": "Equipo de AptisGo"
+          },
+          "subject": "Bienvenido a AptisGo",
+          "text": "Estimado {{user}} has recibido un regalo"
+        }
+      },
+      "googleSignUp": {
+        "html": {
+          "password": "Tu contraseña es"
+        },
+        "subject": "Bienvenido a AptisGo",
+        "text": "Estimado {{user}}, aquí está tu contraseña"
+      },
+      "notifyExpiration": {
+        "html": {
+          "notify": "¡Tu paquete está a punto de vencer! Te quedan pocos días. Puedes renovar tu paquete accediendo al siguiente link:",
+          "practice": "Animo, practica un poco más antes de presentarte a tu convocatoria de Aptis."
+        },
+        "subject": "Paquete a punto de vencimiento",
+        "text": "Estimado {{user}}"
+      },
+      "packageExpiration": {
+        "purchase": " Renueva tu paquete",
+        "subject": "¡Tu paquete ha expirado!",
+        "text": "Estimado {{user}} tu paquete de Aptis ha expirado."
+      },
+      "resetPassword": {
+        "greet": "mails.services.resetPassword.greet",
+        "html": {
+          "greet": "Hola {{user}} aquí está el enlace de recuperación",
+          "practice": "Si aprobar quieres, practicar debes. Dale caña y saca lo mejor de ti.",
+          "team": "Equipo de AptisGo"
+        },
+        "practice": "mails.services.resetPassword.practice",
+        "subject": "Testing Italiano!",
+        "team": "mails.services.resetPassword.team",
+        "text": "Hola {{user}} aquí está el enlace de recuperación"
+      },
+      "signUp": {
+        "html": {
+          "practice": "El que aprobar quiere, practicar debe!",
+          "team": "Equipo de AptisGo",
+          "thanks": "Gracias por registrarte",
+          "verificate": "Verificar cuenta",
+          "verification": "Vertifica tu cuenta en la plataforma de Aptis en:"
+        },
+        "subject": "Bienvenido a AptisGo",
+        "text": "Por favor, dale click al siguiente link para confirmar tu cuenta."
+      }
+    }
+  },
+  "errors": {
+    "User already exists": "User already exists",
+    "Invalid password or username": "Invalid password or username",
+    "Invalid Token Assignament or expired": "Invalid Token Assignament or expired",
+    "The account cannot be verified": "The account cannot be verified",
+    "User Not Found": "User Not Found",
+    "Role Not Found": "Role Not Found",
+    "Advance Not Found": "Advance Not Found",
+    "Invalid Token": "Invalid Token",
+    "Unauthorized Request": "Unauthorized Request",
+    "Room already exists": "Room already exists",
+    "Schedule Not Found": "Schedule Not Found",
+    "Package Not Found": "Package Not Found",
+    "Classroom Not Found": "Classroom not found",
+    "The class-meeting is no longer available": "The class-meeting is no longer available",
+    "Courses has not been registered yet": "Courses has not been registered yet",
+    "A course with the ID provided couldnt be found": "A course with the ID provided couldnt be found",
+    "User or progress doesnt exist": "User or progress doesnt exist",
+    "Evaluation Not Found": "Evaluation Not Found",
+    "Unsuccessful response due to payment requirements": "Unsuccessful response due to payment requirements",
+    "Exam Not Found": "Exam Not Found",
+    "User or plan not found": "User or plan not found",
+    "The Serial is invalid or the Gift does not exist": "The Serial is invalid or the Gift does not exist",
+    "The code has expired and the resource is no longer available": "The code has expired and the resource is no longer available",
+    "The user is invalid or does not exist": "The user is invalid or does not exist",
+    "The meeting doesnt exist": "The meeting doesnt exist",
+    "The user doesnt belong to the classroom": "The user doesnt belong to the classroom",
+    "Unauthorized": "Unauthorized",
+    "Classroom is not streaming": "Classroom is not streaming",
+    "Plan Not Found": "Plan Not Found",
+    "Category Not Found": "Category Not Found"
+  }
+}
