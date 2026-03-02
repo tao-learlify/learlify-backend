@@ -195,10 +195,6 @@ describe('JWT Blocklist', () => {
 })
 
 describe('GET /health', () => {
-  let app
-  let mockDb
-  let mockGetRedis
-
   beforeEach(() => {
     jest.resetModules()
   })
