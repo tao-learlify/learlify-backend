@@ -1,4 +1,4 @@
-import uniqid from 'uniqid'
+import { randomUUID } from 'crypto'
 import moment from 'moment-timezone'
 
 import { Logger } from 'api/logger'
@@ -31,7 +31,7 @@ export class GiftsService {
   createRandomGiftCode() {
     const { provider } = this.configService
 
-    return uniqid.process(provider.uniqid)
+    return `${provider.uniqid}${randomUUID()}`
   }
 
   /**

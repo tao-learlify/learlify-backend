@@ -1,4 +1,4 @@
-import uniqid from 'uniqid'
+import { randomUUID } from 'crypto'
 import config from '../config'
 
 /**
@@ -7,5 +7,5 @@ import config from '../config'
  * @returns {string}
  */
 export function keyGenerator() {
-  return uniqid.process(config.uniqid)
+  return `${config.uniqid}${randomUUID()}`
 }

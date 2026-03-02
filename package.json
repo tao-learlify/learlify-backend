@@ -41,7 +41,6 @@
     "stripe": "^8.135.0",
     "superagent": "^9.0.2",
     "twilio": "^3.56.0",
-    "uniqid": "^5.0.3",
     "uuid": "^9.0.1",
     "validator": "^13.15.26",
     "winston": "^3.19.0",
