@@ -56,7 +56,7 @@ export const prodErrors = (err, _req, res, _next) => {
  * @param {object} res
  * @param {function} _next
  */
-export const devErrors = (err, _req, res) => {
+export const devErrors = (err, _req, res, _next) => {
   if (res.json) {
     logger.error(err.message)
 
