@@ -16,6 +16,7 @@ const config = {
       : process.env.AWS_BUCKET,
   AWS_ACCESS_KEY: process.env.AWS_ACCESS_KEY,
   AWS_SECRET_KEY: process.env.AWS_SECRET_KEY,
+  AWS_REGION: process.env.AWS_REGION || 'us-east-1',
   CLOUDFRONT_NETWORK: process.env.CLOUDFRONT_NETWORK,
   CONSOLE_LOG_LEVEL: 'debug',
   DATE_FORMAT: 'YYYY-MM-DD HH:mm',
@@ -67,7 +68,8 @@ const REQUIRED_ENV = [
   ['TWILIO_API_KEY_SID', 'Twilio video calls will not work'],
   ['TWILIO_API_KEY_SECRET', 'Twilio video calls will not work'],
   ['AWS_ACCESS_KEY', 'AWS S3 uploads will not work'],
-  ['AWS_SECRET_KEY', 'AWS S3 uploads will not work']
+  ['AWS_SECRET_KEY', 'AWS S3 uploads will not work'],
+  ['AWS_REGION',     'AWS S3 region must be explicit in SDK v3']
 ]
 
 const hasSendgrid =

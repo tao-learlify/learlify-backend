@@ -22,22 +22,16 @@ class AWSController {
   async getFile(req, res) {
     const { filename, bucket, key } = req.query
 
-    this.aws.s3.getObject(
-      {
-        Bucket: bucket || 'aptisgo',
-        Key: key.concat('/', filename)
-      },
-      (err, data) => {
-        if (err) {
-          throw new InternalServerErrorException(err.message)
-        }
-        return res.status(200).json({
-          message: 'File get succesfully',
-          response: data.Body.toString('base64'),
-          statusCode: 200
-        })
-      }
-    )
+    const buffer = await this.aws.getObjectBody({
+      Bucket: bucket || 'aptisgo',
+      Key: key.concat('/', filename)
+    })
+
+    return res.status(200).json({
+      message: 'File get succesfully',
+      response: buffer.toString('base64'),
+      statusCode: 200
+    })
   }
 
   /**
@@ -58,25 +52,9 @@ class AWSController {
     const isNotSubscribed = !subscription
 
     if (isNotSubscribed && req.query.feedback) {
-      return this.aws.s3.deleteObject(
-        {
-          Bucket: this.bucket,
-          Key: file.Key
-        },
-        err => {
-          if (err) {
-            this.logger.error('deleteObjectException', err)
-
-            throw new InternalServerErrorException()
-          }
-
-          this.logger.info(
-            'Object Speaking deleted due to payment requirement.'
-          )
-
-          throw new PaymentException()
-        }
-      )
+      await this.aws.deleteObject({ Bucket: this.bucket, Key: file.Key })
+      this.logger.info('Object Speaking deleted due to payment requirement.')
+      throw new PaymentException()
     }
 
     const storage = await this.cloudStorageService.create({
