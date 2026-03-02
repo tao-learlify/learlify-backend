@@ -13,6 +13,7 @@ import jwt from 'api/jwt/jwt.guard'
 import { prodErrors, devErrors } from 'middlewares/handlers'
 import logger from 'utils/logger'
 import './config/db'
+import stripeWebhook from 'api/stripe/stripe.webhook'
 
 import { Scheduler } from 'common/cron'
 import { WebSockets } from 'gateways/socket'
@@ -67,6 +68,9 @@ passport.use(jwt)
 
 app.set('port', config.APP_PORT)
 app.set('host', config.APP_HOST)
+
+app.use(stripeWebhook)
+
 rootMiddleware.forEach(middleware => {
   if (process.env.NODE_ENV !== MODE.test) {
     logger.debug('Middleware: '.concat(middleware.name))

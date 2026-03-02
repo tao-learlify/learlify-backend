@@ -81,7 +81,7 @@ class UsersController {
     /**
      * @type {{ email: string, firstName: string, lastName: string, password?: string }}
      */
-    const { email, ...data} = req.body
+    const { email, ...data } = req.body
 
     this.logger.info('email', { email })
 
@@ -93,7 +93,9 @@ class UsersController {
 
     if (available) {
       data.password &&
-        Object.assign(data, { password: this.authService.hash(data.password) })
+        Object.assign(data, {
+          password: await this.authService.hash(data.password)
+        })
 
       const update = await this.usersService.updateOne({
         ...data,

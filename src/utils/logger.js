@@ -1,27 +1,27 @@
 import winston from 'winston'
+import DailyRotateFile from 'winston-daily-rotate-file'
 import config from '../config'
 
+const { combine, timestamp, json, errors } = winston.format
+
+const jsonFormat = combine(
+  errors({ stack: true }),
+  timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+  json()
+)
 
 const logger = winston.createLogger({
   transports: [
-    new winston.transports.File({
+    new DailyRotateFile({
       level: 'info',
-      json: true,
       handleExceptions: true,
-      maxsize: 5120000,
-      maxFiles: 5,
-      format: winston.format.combine(
-        winston.format.timestamp({
-          format: 'YYYY-MM-DD hh:mm'
-        }),
-        winston.format.printf(info => {
-          const { timestamp, level, message, ...args } = info
-          return `${timestamp} - ${level}: ${message} ${
-            Object.keys(args).length ? JSON.stringify(args, null, 2) : ''
-          }`
-        })
-      ),
-      filename: `${__dirname}/../logs/logs.log`
+      format: jsonFormat,
+      dirname: `${__dirname}/../logs`,
+      filename: 'app-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d'
     }),
     new winston.transports.Console({
       level: config.disableLogs ? 'error' : 'debug',

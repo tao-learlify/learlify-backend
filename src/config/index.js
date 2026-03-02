@@ -29,7 +29,8 @@ const config = {
   PAGINATION_LIMIT: 10,
   SENDGRID_APTIS_ACADEMY: 'academyb1b2@gmail.com',
   SENDGRID_APTIS_EMAIL: 'aptisgo@noreply',
-  SENDGRIND_API_KEY: process.env.SENDGRIND_API_KEY,
+  SENDGRID_API_KEY:
+    process.env.SENDGRID_API_KEY || process.env.SENDGRIND_API_KEY,
   SSL_CERT: process.env.SSL_CERT,
   SSL_SECRET: process.env.SSL_SECRET,
   STRIPE_API_KEY: process.env.STRIPE_API_KEY,
@@ -58,6 +59,38 @@ const config = {
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
+}
+
+const REQUIRED_ENV = [
+  ['STRIPE_API_KEY', 'Stripe payments will not work'],
+  ['TWILIO_API_ACCOUNT_SID', 'Twilio video calls will not work'],
+  ['TWILIO_API_KEY_SID', 'Twilio video calls will not work'],
+  ['TWILIO_API_KEY_SECRET', 'Twilio video calls will not work'],
+  ['AWS_ACCESS_KEY', 'AWS S3 uploads will not work'],
+  ['AWS_SECRET_KEY', 'AWS S3 uploads will not work']
+]
+
+const hasSendgrid =
+  process.env.SENDGRID_API_KEY || process.env.SENDGRIND_API_KEY
+
+if (!hasSendgrid) {
+  throw new Error(
+    'SENDGRID_API_KEY environment variable is required (SENDGRIND_API_KEY is deprecated)'
+  )
+}
+
+if (process.env.SENDGRIND_API_KEY && !process.env.SENDGRID_API_KEY) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[DEPRECATION] SENDGRIND_API_KEY is deprecated. Please rename it to SENDGRID_API_KEY in your .env file.'
+  )
+}
+
+for (const [key, hint] of REQUIRED_ENV) {
+  if (!process.env[key]) {
+    // eslint-disable-next-line no-console
+    console.warn(`[WARNING] ${key} is not set — ${hint}`)
+  }
 }
 
 export default config

@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import Stripe from 'stripe'
+import crypto from 'crypto'
 import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
 import { ConfigService } from 'api/config/config.service'
@@ -69,12 +70,20 @@ class StripeService {
       }
     }
 
+    const idempotencyKey = crypto
+      .createHash('sha256')
+      .update(`addCustomer:${customer.email}`)
+      .digest('hex')
+
     try {
-      const membership = await this[privateStripeKey].customers.create({
-        source: customer.source,
-        email: customer.email,
-        description: `Customer ${firstName} ${lastName}`
-      })
+      const membership = await this[privateStripeKey].customers.create(
+        {
+          source: customer.source,
+          email: customer.email,
+          description: `Customer ${firstName} ${lastName}`
+        },
+        { idempotencyKey }
+      )
       this.logger.debug('stripe.service.membership', membership)
 
       return {
@@ -103,17 +112,27 @@ class StripeService {
     this.logger.debug('PaymentIntentProduction', { mode: isProduction })
 
     try {
-      const intent = await stripe.paymentIntents.create({
-        description: `Charge for AptisGo ${intentInfo.name} Plan`,
-        payment_method: intentInfo.paymentMethodId,
-        amount: intentInfo.amount,
-        currency: intentInfo.currency,
-        confirmation_method: 'manual',
-        payment_method_types: ['card'],
-        confirm: true,
-        receipt_email: intentInfo.email,
-        customer: intentInfo.customer
-      })
+      const idempotencyKey = crypto
+        .createHash('sha256')
+        .update(
+          `addIntentPayment:${intentInfo.paymentMethodId}:${intentInfo.amount}:${intentInfo.customer}`
+        )
+        .digest('hex')
+
+      const intent = await stripe.paymentIntents.create(
+        {
+          description: `Charge for AptisGo ${intentInfo.name} Plan`,
+          payment_method: intentInfo.paymentMethodId,
+          amount: intentInfo.amount,
+          currency: intentInfo.currency,
+          confirmation_method: 'manual',
+          payment_method_types: ['card'],
+          confirm: true,
+          receipt_email: intentInfo.email,
+          customer: intentInfo.customer
+        },
+        { idempotencyKey }
+      )
 
       this.logger.debug('addIntentPayment', intent)
 

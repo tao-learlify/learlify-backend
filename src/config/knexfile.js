@@ -2,7 +2,10 @@
 // directamente por el CLI de knex (migraciones). En producción (runtime de Node)
 // dotenv ya fue inicializado por src/config/index.js y @babel/register no existe.
 try {
-  require('dotenv').config({ path: '../../.env' })
+  const dotenvPath =
+    process.env.DOTENV_CONFIG_PATH ||
+    require('path').resolve(process.cwd(), '.env')
+  require('dotenv').config({ path: dotenvPath })
 } catch (_) {}
 try {
   require('@babel/register')

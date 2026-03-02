@@ -51,7 +51,7 @@ export class AuthenticationController {
       isVerified: false,
       lang: req.locale,
       lastName: sign.lastName,
-      password: this.authService.hash(sign.password),
+      password: await this.authService.hash(sign.password),
       roleId: role.id,
       lastLogin: moment().format('YYYY-MM-DD')
     })
@@ -118,7 +118,7 @@ export class AuthenticationController {
     })
 
     if (user) {
-      const authenticate = this.authService.compareHash(
+      const authenticate = await this.authService.compareHash(
         sign.password,
         user.password
       )
@@ -219,7 +219,9 @@ export class AuthenticationController {
      * Generates a random password.
      * Because user is not authenticated.
      */
-    const password = this.authService.generateRandomPassword({ useHash: true })
+    const password = await this.authService.generateRandomPassword({
+      useHash: true
+    })
 
     /**
      * Getting role.
@@ -344,7 +346,9 @@ export class AuthenticationController {
      * Generates a random password.
      * Because user is not authenticated.
      */
-    const password = this.authService.generateRandomPassword({ useHash: true })
+    const password = await this.authService.generateRandomPassword({
+      useHash: true
+    })
 
     /**
      * Getting role.
@@ -580,7 +584,7 @@ export class AuthenticationController {
     if (user) {
       const update = await this.userService.updateOne({
         id: user.id,
-        password: this.authService.hash(password)
+        password: await this.authService.hash(password)
       })
 
       return res.status(201).json({

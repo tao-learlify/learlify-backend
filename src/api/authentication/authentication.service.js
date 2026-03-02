@@ -16,10 +16,10 @@ class AuthenticationService {
   /**
    * @param {string} value
    * @param {string} hash
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  compareHash(value, hash) {
-    return bcrypt.compareSync(value, hash)
+  async compareHash(value, hash) {
+    return bcrypt.compare(value, hash)
   }
 
   /**
@@ -79,7 +79,7 @@ class AuthenticationService {
   /**
    * @param {{ useHash?: boolean }}
    */
-  generateRandomPassword({ useHash }) {
+  async generateRandomPassword({ useHash }) {
     const password = generator.generate({
       uppercase: true,
       length: 8
@@ -87,18 +87,18 @@ class AuthenticationService {
 
     return {
       value: password,
-      hash: useHash ? this.hash(password) : null
+      hash: useHash ? await this.hash(password) : null
     }
   }
 
   /**
    * @param {string} value
-   * @returns {string}
+   * @returns {Promise<string>}
    */
-  hash(value) {
+  async hash(value) {
     const { provider } = this.configService
 
-    return bcrypt.hashSync(value, provider.STRONG_HASH)
+    return bcrypt.hash(value, provider.STRONG_HASH)
   }
 }
 
