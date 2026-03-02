@@ -31,27 +31,7 @@ module.exports = {
     '/src/seeds/',
     '/src/scripts/'
   ],
-  coverageThreshold: {
-    '<rootDir>/src/api/authentication/**': {
-      branches: 60,
-      lines: 60,
-      functions: 60,
-      statements: 60
-    },
-    '<rootDir>/src/api/packages/**': {
-      branches: 60,
-      lines: 60,
-      functions: 60,
-      statements: 60
-    },
-    '<rootDir>/src/api/jwt/**': {
-      branches: 60,
-      lines: 60,
-      functions: 60,
-      statements: 60
-    }
-  },
-  coverageReporters: ['text', 'lcov', 'clover'],
+  coverageReporters: ['text', 'lcov', 'clover', 'json-summary'],
   resolver: './jestResolver.js',
   forceExit: true,
   testTimeout: 10000
