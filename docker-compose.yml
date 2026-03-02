@@ -7,12 +7,12 @@ services:
     container_name: learlify_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
+    # Puerto solo expuesto para acceso externo desde herramientas de DB (TablePlus, DBeaver, etc.)
+    # Cambia 3308 si tienes otro servicio en ese puerto
     ports:
-      - "3306:3306"
+      - "3308:3306"
     volumes:
       # Persistencia de datos
       - db_data:/var/lib/mysql
@@ -22,7 +22,7 @@ services:
       # Coloca tu backup.sql en la carpeta ./db/init/ del proyecto.
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER}", "-p${DB_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
