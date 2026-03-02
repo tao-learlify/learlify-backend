@@ -62,14 +62,18 @@ class AuthenticationService {
       delete payload.googleId
       delete payload.facebookId
 
-      return jwt.sign(payload, provider.JWT_SECRET)
+      return jwt.sign(payload, provider.JWT_SECRET, {
+        expiresIn: provider.JWT_EXPIRATION
+      })
     }
 
     if (encryptOptions) {
       return jwt.sign(payload, provider.JWT_SECRET, encryptOptions)
     }
 
-    return jwt.sign(payload, provider.JWT_SECRET)
+    return jwt.sign(payload, provider.JWT_SECRET, {
+      expiresIn: provider.JWT_EXPIRATION
+    })
   }
 
   /**

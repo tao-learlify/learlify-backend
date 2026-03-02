@@ -10,7 +10,10 @@ for the enviroment that that the app is being executed in. */
 const config = {
   APP_HOST: process.env.HOST || 'localhost',
   APP_PORT: process.env.PORT || 3100,
-  AWS_BUCKET: enviroment === 'development' ? process.env.AWS_TEST_BUCKET : process.env.AWS_BUCKET,
+  AWS_BUCKET:
+    enviroment === 'development'
+      ? process.env.AWS_TEST_BUCKET
+      : process.env.AWS_BUCKET,
   AWS_ACCESS_KEY: process.env.AWS_ACCESS_KEY,
   AWS_SECRET_KEY: process.env.AWS_SECRET_KEY,
   CLOUDFRONT_NETWORK: process.env.CLOUDFRONT_NETWORK,
@@ -51,6 +54,10 @@ const config = {
     ITEMS: 5,
     DISK: 'files'
   }
+}
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
 }
 
 export default config

@@ -236,6 +236,7 @@ export class Middleware {
 
   static memoryStorage(req, res, next) {
     const disk = Multer({
+      limits: { fileSize: config.MULTIPART_FORMDATA.FILESIZE },
       storage: STORAGE,
       fileFilter: (req, file, callback) => {
         sanitizeFile(file, callback)
@@ -306,9 +307,9 @@ export class Middleware {
           if (userId === req.user.id) {
             return next()
           }
-  
+
           logger.warn('Invalid owner', req.user.id)
-  
+
           throw new UnauthorizedException()
         }
 
@@ -324,9 +325,9 @@ export class Middleware {
           if (userId === req.user.id) {
             return next()
           }
-  
+
           logger.warn('Invalid owner', req.user.id)
-  
+
           throw new UnauthorizedException()
         }
 
@@ -334,7 +335,7 @@ export class Middleware {
       }
     })
   }
-  
+
   static GeoLocationGuard(req, res, next) {
     const logger = Logger.Service
 
@@ -362,7 +363,7 @@ export class Middleware {
       req.country = lookup.country
 
       req.currency = 'EUR'
-    
+
       return next()
     }
 
@@ -374,7 +375,7 @@ export class Middleware {
     req.country = lookup.country
 
     req.currency = currency
-    
+
     next()
   }
 }

@@ -41,7 +41,6 @@ import ChatGateway from 'gateways/modules/chat'
 import rootMiddleware from 'middlewares/rootMiddlware'
 import root from 'config/root'
 
-
 dotenv.config()
 
 /**
@@ -53,8 +52,6 @@ const app = express()
 const server = http.createServer(app)
 
 const stream = io()
-
-
 
 /**
  * @description
@@ -127,7 +124,6 @@ stream.attach(server, {
   pingTimeout: 5000
 })
 
-
 /**
  * @description
  * Listening on port and host.
@@ -152,6 +148,20 @@ server.listen(app.get('port'), app.get('host'), () => {
   } else {
     logger.info('Running as test mode.')
   }
+})
+
+process.on('unhandledRejection', reason => {
+  logger.error('unhandledRejection', { reason })
+  process.exit(1)
+})
+
+process.on('uncaughtException', err => {
+  logger.error('uncaughtException', { message: err.message, stack: err.stack })
+  process.exit(1)
+})
+
+process.on('SIGTERM', () => {
+  server.close(() => process.exit(0))
 })
 
 export { app as server, Sockets, stream }

@@ -38,7 +38,7 @@ class PackagesTasks {
         for (const pack of packages) {
           await this.packagesService.updateOne({
             id: pack.id,
-            isNotified: false
+            isNotified: true
           })
 
           this.logger.debug('pack', pack)
