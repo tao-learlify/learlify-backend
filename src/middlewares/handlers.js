@@ -37,11 +37,7 @@ export function validationErrorHandler(err, req, res, next) {
  * @param {function} _next
  */
 export const prodErrors = (err, _req, res, _next) => {
-  if (err) {
-    console.log(err)
-  }
-
-  logger.error(err.message)
+  logger.error(err.message, { stack: err.stack })
 
   res.status(err.statusCode || 500)
 

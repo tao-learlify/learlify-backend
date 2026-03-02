@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { Logger } from 'api/logger'
 import { Middleware } from 'middlewares'
+import { authLimiter } from 'middlewares/rateLimit'
 import { pipe } from './authentication.pipe'
 import { AuthenticationController } from './authentication.controller'
 import { isRunningOnProductionOrDevelopment } from 'functions'
@@ -19,13 +20,13 @@ export class AuthenticationRouter {
 
     this.auth.post(
       '/register',
-      [pipe.signUp, Middleware.usePipe, Middleware.LanguageGuard],
+      [authLimiter, pipe.signUp, Middleware.usePipe, Middleware.LanguageGuard],
       Middleware.secure(this.controller.signUp)
     )
 
     this.auth.post(
       '/login',
-      [pipe.signIn, Middleware.usePipe],
+      [authLimiter, pipe.signIn, Middleware.usePipe],
       Middleware.secure(this.controller.signIn)
     )
 
@@ -49,7 +50,7 @@ export class AuthenticationRouter {
 
     this.auth.post(
       '/forgot',
-      [pipe.forgot, Middleware.usePipe, Middleware.LanguageGuard],
+      [authLimiter, pipe.forgot, Middleware.usePipe, Middleware.LanguageGuard],
       Middleware.secure(this.controller.forgot)
     )
 
@@ -71,6 +72,12 @@ export class AuthenticationRouter {
     )
 
     this.auth.get('/demo', Middleware.secure(this.controller.demoUser))
+
+    this.auth.post(
+      '/logout',
+      [Middleware.authenticate],
+      Middleware.secure(this.controller.logout)
+    )
 
     return {
       route: '/auth',

@@ -138,8 +138,8 @@ export class PackagesService {
 
     const knexInstance = Package.knex()
 
-    const trx = await knexInstance.transaction(async trx => {
-      try {
+    try {
+      const result = await knexInstance.transaction(async trx => {
         const user = await User.query(trx).findOne({
           id: data.user.id
         })
@@ -246,18 +246,23 @@ export class PackagesService {
             intent
           }
         } else {
-          throw new Error()
+          throw new Error('User or Plan not found')
         }
-      } catch (err) {
-        return {
-          details: err.message,
-          stack: err.stack,
-          error: true
-        }
-      }
-    })
+      })
 
-    return trx
+      return result
+    } catch (err) {
+      this.logger.error('createTransactionablePackage', {
+        message: err.message,
+        stack: err.stack
+      })
+
+      return {
+        details: err.message,
+        stack: err.stack,
+        error: true
+      }
+    }
   }
 
   /**
@@ -420,7 +425,7 @@ export class PackagesService {
     if (speakings && speakings[0]) {
       count.speakings = speakings[0].speakings
     }
-    
+
     if (speakings && writings[0]) {
       count.writings = writings[0].writings
     }

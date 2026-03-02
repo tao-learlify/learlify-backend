@@ -2,6 +2,7 @@ import { AuthenticationService } from './authentication.service'
 import { UsersService } from 'api/users/users.service'
 import { RolesService } from 'api/roles/roles.services'
 import { MailService } from 'api/mails/mails.service'
+import { addToBlocklist } from 'api/jwt/jwt.blocklist'
 import { Roles } from 'metadata/roles'
 import { ConfigService } from 'api/config/config.service'
 import {
@@ -51,7 +52,7 @@ export class AuthenticationController {
       isVerified: false,
       lang: req.locale,
       lastName: sign.lastName,
-      password: this.authService.hash(sign.password),
+      password: await this.authService.hash(sign.password),
       roleId: role.id,
       lastLogin: moment().format('YYYY-MM-DD')
     })
@@ -118,7 +119,7 @@ export class AuthenticationController {
     })
 
     if (user) {
-      const authenticate = this.authService.compareHash(
+      const authenticate = await this.authService.compareHash(
         sign.password,
         user.password
       )
@@ -219,7 +220,9 @@ export class AuthenticationController {
      * Generates a random password.
      * Because user is not authenticated.
      */
-    const password = this.authService.generateRandomPassword({ useHash: true })
+    const password = await this.authService.generateRandomPassword({
+      useHash: true
+    })
 
     /**
      * Getting role.
@@ -344,7 +347,9 @@ export class AuthenticationController {
      * Generates a random password.
      * Because user is not authenticated.
      */
-    const password = this.authService.generateRandomPassword({ useHash: true })
+    const password = await this.authService.generateRandomPassword({
+      useHash: true
+    })
 
     /**
      * Getting role.
@@ -580,7 +585,7 @@ export class AuthenticationController {
     if (user) {
       const update = await this.userService.updateOne({
         id: user.id,
-        password: this.authService.hash(password)
+        password: await this.authService.hash(password)
       })
 
       return res.status(201).json({
@@ -620,6 +625,21 @@ export class AuthenticationController {
       response: {
         token
       },
+      statusCode: 200
+    })
+  }
+
+  @Bind
+  async logout(req, res) {
+    const authHeader = req.headers['authorization'] || ''
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
+
+    if (token) {
+      await addToBlocklist(token)
+    }
+
+    return res.status(200).json({
+      message: 'Logged out successfully',
       statusCode: 200
     })
   }

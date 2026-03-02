@@ -1,0 +1,58 @@
+services:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Base de datos MySQL
+  # ─────────────────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    container_name: learlify_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    # Puerto solo expuesto para acceso externo desde herramientas de DB (TablePlus, DBeaver, etc.)
+    # Cambia 3308 si tienes otro servicio en ese puerto
+    ports:
+      - "3308:3306"
+    volumes:
+      # Persistencia de datos
+      - db_data:/var/lib/mysql
+      # ── Seed automático ──────────────────────────────────────────────────
+      # MySQL ejecuta todos los archivos .sql de esta carpeta la primera vez
+      # que se crea el volumen (cuando /var/lib/mysql está vacío).
+      # Coloca tu backup.sql en la carpeta ./db/init/ del proyecto.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Aplicación Node.js
+  # ─────────────────────────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: learlify_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      # Sobreescribir DB_HOST para apuntar al servicio interno de Docker
+      DB_HOST: db
+    ports:
+      - "${PORT:-3100}:3100"
+    volumes:
+      # Logs persistentes fuera del contenedor
+      - app_logs:/app/dist/logs
+
+volumes:
+  db_data:
+  app_logs:

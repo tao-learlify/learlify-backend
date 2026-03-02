@@ -1,0 +1,31 @@
+# Dependencias locales — se reinstalan dentro del contenedor
+node_modules
+
+# Build anterior — se genera en el stage builder
+dist
+
+# Variables de entorno — inyectar en runtime, nunca empaquetar en la imagen
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# Control de versiones
+.git
+.gitignore
+
+# Herramientas de desarrollo y documentación
+.babelrc.local
+.eslintrc*
+.prettierrc*
+jsdoc.json
+README.md
+AUDIT.md
+coverage
+
+# Sistemas operativos
+.DS_Store
+Thumbs.db

@@ -2,6 +2,8 @@ import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
 import { UsersService } from 'api/users/users.service'
 import { MeetingsService } from 'api/meetings/meetings.service'
+import jwt from 'jsonwebtoken'
+import config from '../config'
 import ROOMS from './rooms'
 import * as EVENT from './events'
 
@@ -42,6 +44,24 @@ export class WebSockets {
   @Bind
   main() {
     this.logger.info('WebSockets Service Running')
+
+    this.stream.use((socket, next) => {
+      const token =
+        socket.handshake.auth?.token || socket.handshake.query?.token
+
+      if (!token) {
+        return next(new Error('unauthorized'))
+      }
+
+      jwt.verify(token, config.JWT_SECRET, (err, decoded) => {
+        if (err) {
+          return next(new Error('unauthorized'))
+        }
+
+        socket.user = decoded
+        next()
+      })
+    })
 
     /**
      * @description

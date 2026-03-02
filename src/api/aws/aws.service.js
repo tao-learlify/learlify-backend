@@ -27,7 +27,12 @@ export class AmazonWebServices {
    * @param {FileInterceptorOptions} fileInterceptorOptions
    */
   fileInterceptor(fileInterceptorOptions) {
+    const { FILESIZE } = this.configService.provider.MULTIPART_FORMDATA
     const instance = Multer({
+      limits: { fileSize: FILESIZE },
+      fileFilter(req, file, callback) {
+        sanitizeFile(file, callback)
+      },
       storage: MulterS3Plugin({
         s3: this.s3,
         bucket: fileInterceptorOptions.bucket,
@@ -36,24 +41,18 @@ export class AmazonWebServices {
         },
         key(req, file, callback) {
           callback(null, generateDateFileName(file.originalname))
-        },
-        limits: {
-          fileSize: 5000000
-        },
-        fileFilter(req, file, callback) {
-          sanitizeFile(file, callback)
         }
       })
     })
 
     return instance.single(this.uploadKey)
   }
-  
+
   /**
-   * 
-   * @param {import ('aws-sdk').S3.GetObjectRequest} request 
+   *
+   * @param {import ('aws-sdk').S3.GetObjectRequest} request
    */
-  async getJSONFile (request, parse) {
+  async getJSONFile(request, parse) {
     return new Promise((resolve, reject) => {
       this.s3.getObject(request, (err, data) => {
         if (err) {

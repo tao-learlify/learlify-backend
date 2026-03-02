@@ -10,7 +10,6 @@ import { Logger } from 'api/logger'
 import { Bind } from 'decorators'
 
 class AdminController {
-  
   constructor() {
     this.adminService = new AdminService()
 
@@ -25,7 +24,6 @@ class AdminController {
     this.usersService = new UsersService()
 
     this.packagesService = new PackagesService()
-
 
     this.logger = Logger.Service
   }
@@ -46,7 +44,7 @@ class AdminController {
     }
 
     if (role) {
-      const password = this.authService.generateRandomPassword({
+      const password = await this.authService.generateRandomPassword({
         useHash: true
       })
 
@@ -93,14 +91,13 @@ class AdminController {
     throw new NotFoundException(res.__('errors.Role Not Found'))
   }
 
-
   /**
-   * 
-   * @param {Express.Request} req 
-   * @param {Express.Response} res 
+   *
+   * @param {Express.Request} req
+   * @param {Express.Response} res
    */
   @Bind
-  async viewUserInfo (req, res) {
+  async viewUserInfo(req, res) {
     /**
      * @param {string}
      */
@@ -135,6 +132,5 @@ class AdminController {
     throw new NotFoundException('User Not Found')
   }
 }
-
 
 export { AdminController }

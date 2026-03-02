@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    needs: lint
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-at-least-32-chars-long
+      JWT_EXPIRATION: 30d
+      SENDGRID_API_KEY: SG.ci-placeholder
+      STRONG_HASH: '10'
+      # Leave REDIS_URL unset so Redis features degrade gracefully
+      # Leave DATABASE_URL unset; DB is mocked in tests
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+      - name: Coverage gate — authentication (≥60%)
+        if: always()
+        run: |
+          LINES=$(node -e "
+            const r = require('./coverage/coverage-summary.json');
+            const key = Object.keys(r).find(k => k.includes('api/authentication'));
+            if (!key) { console.error('Coverage data for authentication not found'); process.exit(1); }
+            console.log(r[key].lines.pct);
+          ")
+          echo "authentication lines coverage: $LINES%"
+          node -e "if ($LINES < 60) { console.error('Coverage below 60%: ' + $LINES); process.exit(1); }"
+
+      - name: Coverage gate — jwt (≥60%)
+        if: always()
+        run: |
+          LINES=$(node -e "
+            const r = require('./coverage/coverage-summary.json');
+            const key = Object.keys(r).find(k => k.includes('api/jwt'));
+            if (!key) { console.error('Coverage data for jwt not found'); process.exit(1); }
+            console.log(r[key].lines.pct);
+          ")
+          echo "jwt lines coverage: $LINES%"
+          node -e "if ($LINES < 60) { console.error('Coverage below 60%: ' + $LINES); process.exit(1); }"
+
+      - name: Coverage gate — packages (≥60%)
+        if: always()
+        run: |
+          LINES=$(node -e "
+            const r = require('./coverage/coverage-summary.json');
+            const key = Object.keys(r).find(k => k.includes('api/packages'));
+            if (!key) { console.error('Coverage data for packages not found'); process.exit(1); }
+            console.log(r[key].lines.pct);
+          ")
+          echo "packages lines coverage: $LINES%"
+          node -e "if ($LINES < 60) { console.error('Coverage below 60%: ' + $LINES); process.exit(1); }"

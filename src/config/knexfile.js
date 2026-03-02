@@ -1,5 +1,15 @@
-require('dotenv').config({ path: '../../.env' })
-require('@babel/register')
+// Estas dependencias solo se necesitan cuando knexfile.js es cargado
+// directamente por el CLI de knex (migraciones). En producción (runtime de Node)
+// dotenv ya fue inicializado por src/config/index.js y @babel/register no existe.
+try {
+  const dotenvPath =
+    process.env.DOTENV_CONFIG_PATH ||
+    require('path').resolve(process.cwd(), '.env')
+  require('dotenv').config({ path: dotenvPath })
+} catch (_) {}
+try {
+  require('@babel/register')
+} catch (_) {}
 
 const connection = {
   port: process.env.DB_PORT,
@@ -9,9 +19,9 @@ const connection = {
   database: process.env.DB_NAME,
   charset: 'utf8',
   timezone: 'UTC',
-  typeCast (field, next) {
+  typeCast(field, next) {
     if (field.type === 'TINY' && field.length === 1) {
-      const  value = field.string()
+      const value = field.string()
 
       return value ? value === '1' : null
     }

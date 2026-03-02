@@ -13,9 +13,13 @@ import jwt from 'api/jwt/jwt.guard'
 import { prodErrors, devErrors } from 'middlewares/handlers'
 import logger from 'utils/logger'
 import './config/db'
+import stripeWebhook from 'api/stripe/stripe.webhook'
+import healthRouter from 'api/health/health.routes'
+import metricsRouter from 'api/metrics/metrics.routes'
 
 import { Scheduler } from 'common/cron'
 import { WebSockets } from 'gateways/socket'
+import { closeRedisClient } from 'config/redis'
 
 import { MODE } from 'common/process'
 import { TASKS } from 'common/tasks'
@@ -41,7 +45,6 @@ import ChatGateway from 'gateways/modules/chat'
 import rootMiddleware from 'middlewares/rootMiddlware'
 import root from 'config/root'
 
-
 dotenv.config()
 
 /**
@@ -53,8 +56,6 @@ const app = express()
 const server = http.createServer(app)
 
 const stream = io()
-
-
 
 /**
  * @description
@@ -70,6 +71,11 @@ passport.use(jwt)
 
 app.set('port', config.APP_PORT)
 app.set('host', config.APP_HOST)
+
+app.use(stripeWebhook)
+app.use(healthRouter)
+app.use(metricsRouter)
+
 rootMiddleware.forEach(middleware => {
   if (process.env.NODE_ENV !== MODE.test) {
     logger.debug('Middleware: '.concat(middleware.name))
@@ -127,7 +133,6 @@ stream.attach(server, {
   pingTimeout: 5000
 })
 
-
 /**
  * @description
  * Listening on port and host.
@@ -152,6 +157,23 @@ server.listen(app.get('port'), app.get('host'), () => {
   } else {
     logger.info('Running as test mode.')
   }
+})
+
+process.on('unhandledRejection', reason => {
+  logger.error('unhandledRejection', { reason })
+  process.exit(1)
+})
+
+process.on('uncaughtException', err => {
+  logger.error('uncaughtException', { message: err.message, stack: err.stack })
+  process.exit(1)
+})
+
+process.on('SIGTERM', () => {
+  server.close(async () => {
+    await closeRedisClient()
+    process.exit(0)
+  })
 })
 
 export { app as server, Sockets, stream }
