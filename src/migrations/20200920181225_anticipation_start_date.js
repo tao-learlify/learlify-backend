@@ -11,7 +11,7 @@ exports.up = function (knex) {
  * @param {import ('knex')} knex
  */
 exports.down = function (knex) {
-  return knex.schema.table('schedule', table => { q
+  return knex.schema.table('schedule', table => {
     table.dropColumn('anticipatedStartDate')
   })
 }

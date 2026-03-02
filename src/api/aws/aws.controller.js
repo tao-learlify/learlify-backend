@@ -3,7 +3,7 @@ import { Bind } from 'decorators'
 import { AmazonWebServices } from './aws.service'
 import { CloudStorageService } from 'api/cloudstorage/cloudstorage.service'
 import { PackagesService } from 'api/packages/packages.service'
-import { InternalServerErrorException, PaymentException } from 'exceptions'
+import { PaymentException } from 'exceptions'
 
 class AWSController {
   constructor({ bucket }) {
@@ -72,6 +72,5 @@ class AWSController {
     })
   }
 }
-
 
 export { AWSController }

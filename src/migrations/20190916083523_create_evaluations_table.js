@@ -1,18 +1,14 @@
 const STATUS = require('../api/evaluations/evaluations.status')
 
-
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('evaluations', table => {
     table.increments('id').primary()
+    table.integer('userId').unsigned().notNullable()
     table
-    .integer('userId')
-    .unsigned()
-    .notNullable()
-    table
-    .foreign('userId')
-    .references('users.id')
-    .onUpdate('CASCADE')
-    .onDelete('CASCADE')
+      .foreign('userId')
+      .references('users.id')
+      .onUpdate('CASCADE')
+      .onDelete('CASCADE')
     table.integer('teacherId').unsigned()
     table.foreign('teacherId').references('users.id')
     table.integer('progressId').unsigned()
@@ -25,8 +21,8 @@ exports.up = function(knex) {
     table.timestamp('updatedAt').defaultTo(knex.fn.now())
     table.timestamp('createdAt').defaultTo(knex.fn.now())
   })
-};
+}
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('evaluations')
-};
+}

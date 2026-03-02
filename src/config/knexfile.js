@@ -6,10 +6,14 @@ try {
     process.env.DOTENV_CONFIG_PATH ||
     require('path').resolve(process.cwd(), '.env')
   require('dotenv').config({ path: dotenvPath })
-} catch (_) {}
+} catch (_) {
+  /* intentionally ignored */
+}
 try {
   require('@babel/register')
-} catch (_) {}
+} catch (_) {
+  /* intentionally ignored */
+}
 
 const connection = {
   port: process.env.DB_PORT,

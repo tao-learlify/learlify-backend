@@ -1,5 +1,4 @@
 import logger from '../utils/logger'
-import _isEmpty from 'lodash/isEmpty'
 
 /**
  * Middleware to handle any other types of errors
@@ -36,6 +35,7 @@ export function validationErrorHandler(err, req, res, next) {
  * @param {object} res
  * @param {function} _next
  */
+// eslint-disable-next-line no-unused-vars
 export const prodErrors = (err, _req, res, _next) => {
   logger.error(err.message, { stack: err.stack })
 
@@ -56,6 +56,7 @@ export const prodErrors = (err, _req, res, _next) => {
  * @param {object} res
  * @param {function} _next
  */
+// eslint-disable-next-line no-unused-vars
 export const devErrors = (err, _req, res, _next) => {
   if (res.json) {
     logger.error(err.message)

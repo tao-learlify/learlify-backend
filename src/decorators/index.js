@@ -98,7 +98,7 @@ function Controller(target) {
    * @param {string} propertyName
    */
   function getMethodDescriptor(propertyName) {
-    if (target.prototype.hasOwnProperty(propertyName))
+    if (Object.prototype.hasOwnProperty.call(target.prototype, propertyName))
       return Object.getOwnPropertyDescriptor(target.prototype, propertyName)
 
     return {
@@ -156,11 +156,4 @@ function Injectable(ClassRef) {
   }
 }
 
-export {
-  Controller,
-  Injectable,
-  Bind,
-  Router,
-  CronSchedule,
-  Readonly,
-}
+export { Controller, Injectable, Bind, Router, CronSchedule, Readonly }

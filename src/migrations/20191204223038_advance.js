@@ -1,5 +1,4 @@
-
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('advance', table => {
     table.increments('id').primary()
     table.integer('userId').unsigned().notNullable()
@@ -17,8 +16,8 @@ exports.up = function(knex) {
       .onDelete('CASCADE')
     table.timestamp('createdAt').defaultTo(knex.fn.now())
   })
-};
+}
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('advance')
-};
+}

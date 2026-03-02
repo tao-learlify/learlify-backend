@@ -1,5 +1,5 @@
 import { MODE } from 'common/process'
-import { v4 as UUID } from 'uuid' 
+import { v4 as UUID } from 'uuid'
 import moment from 'moment'
 
 /**
@@ -132,12 +132,13 @@ export function parseContent({ data, key }) {
 /**
  * @param {{ version: string, dir: string }}
  */
-export function build ({ version, dir }) {
+export function build({ version, dir }) {
   return `exams/${version}/${dir}`
 }
 
-export function sum (accumulator, currentValue) {
+export function sum(accumulator, currentValue) {
+  // eslint-disable-next-line no-console
   console.log(accumulator, currentValue)
 
   return accumulator + currentValue
-} 
+}

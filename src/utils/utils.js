@@ -13,7 +13,7 @@ export async function hash(value) {
   const saltRounds = 10
 
   const hash = await new Promise((resolve, reject) => {
-    bcrypt.hash(value, saltRounds, function(err, encrypted) {
+    bcrypt.hash(value, saltRounds, function (err, encrypted) {
       return err ? reject(err) : resolve(encrypted)
     })
   })
@@ -76,7 +76,7 @@ export function orderAs(a, b) {
  * @description
  * Checking that array is empty.
  * @param {[]} arr
- * @returns {boolean} 
+ * @returns {boolean}
  */
 export function emptyArray(arr) {
   if (typeof arr !== 'object') {
@@ -86,7 +86,7 @@ export function emptyArray(arr) {
 }
 
 /**
- * @param {number} value 
+ * @param {number} value
  * @returns {Function}
  */
 export function fromUnits(value, callback) {
@@ -94,40 +94,37 @@ export function fromUnits(value, callback) {
   return callback(units)
 }
 
-
 /**
  * @description
  * Obtains the category id passing name as category argument.
- * @param {string} category 
- * @param {[]} categories 
+ * @param {string} category
+ * @param {[]} categories
  */
 export function getCategoryId(category, categories) {
   const lastFound = categories.find(value => value.name === category)
 
   return lastFound.id
-} 
-
+}
 
 /**
  * @example
  * fileNameNumber('index', 1, 'json')
- * @param {string} alias 
+ * @param {string} alias
  * @param {number} id
  * @param {string} ext
  * @returns {string}
  */
-export function createFileName (alias, id, ext) {
+export function createFileName(alias, id, ext) {
   return `${alias}-${id}.${ext}`
 }
 
-
 /**
  * Get the exams requeriments only for data fetching.
- * @param {RegExp} expression 
- * @param {[]} packages 
- * @param {string} role 
+ * @param {RegExp} expression
+ * @param {[]} packages
+ * @param {string} role
  */
-export function examRequirements (expression, packages) {
+export function examRequirements(expression, packages) {
   const freeExamNameExpression = /^\bExam 1\b$/
 
   return !freeExamNameExpression.test(expression) && packages.length === 0
@@ -136,9 +133,10 @@ export function examRequirements (expression, packages) {
 /**
  * Get the client data with no confidential information.
  * @param {{}} user
- * @returns {{}} 
+ * @returns {{}}
  */
-export function getUserClientData (user) {
+export function getUserClientData(user) {
+  /* eslint-disable no-unused-vars */
   const {
     password,
     updatedAt,
@@ -151,6 +149,7 @@ export function getUserClientData (user) {
     hasActivePackages,
     ...client
   } = user
+  /* eslint-enable no-unused-vars */
 
   return client
 }

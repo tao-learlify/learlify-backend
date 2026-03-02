@@ -1,4 +1,4 @@
-import Joi, { validate, SchemaLike, SchemaMap } from 'joi'
+import Joi from 'joi'
 
 export class Validator {
   /**

@@ -1,5 +1,4 @@
-
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex('plans').insert({
     name: 'Curso Aptis',
     currency: 'EUR',
@@ -7,10 +6,8 @@ exports.up = function(knex) {
     speaking: 0,
     price: 1499
   })
-};
+}
 
-exports.down = function(knex) {
-  return knex('plans')
-    .where('name', 'Curso Aptis')
-    .del()
-};
+exports.down = function (knex) {
+  return knex('plans').where('name', 'Curso Aptis').del()
+}

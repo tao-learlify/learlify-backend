@@ -1,12 +1,8 @@
-
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('classes', table => {
     table.increments('id').primary()
 
-    table
-      .integer('scheduleId')
-      .unsigned()
-      .notNullable()
+    table.integer('scheduleId').unsigned().notNullable()
 
     table
       .foreign('scheduleId')
@@ -18,8 +14,8 @@ exports.up = function(knex) {
 
     table.timestamp('updatedAt').defaultTo(knex.fn.now())
   })
-};
+}
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('classes')
-};
+}
