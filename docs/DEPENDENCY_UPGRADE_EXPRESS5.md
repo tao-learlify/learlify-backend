@@ -332,6 +332,66 @@ node dist/index.js 2>&1 | grep -i "path-to-regexp\|TypeError\|invalid route"
 
 ---
 
+### BC-2b: Express 5 externaliza `Router` como paquete npm `router` — conflicto con Jest moduleNameMapper
+
+**Qué cambia:**
+En Express 4, el Router era un módulo interno (`require('./router')` — ruta
+relativa). En Express 5, fue separado al paquete npm externo `router` (bare
+import: `require('router')`). El `moduleNameMapper` del jest.config.js tenía
+`'^router$': '<rootDir>/src/router/index.js'`, que intercepta globalmente
+**todo** `require('router')`, incluyendo el que hace Express 5 internamente.
+Esto devuelve `ApplicationInterfaceService` en lugar del Router class de
+Express, causando `TypeError: Router is not a constructor` al registrar el
+primer middleware en cualquier test que use `express()`.
+
+**Cómo detectarlo:**
+```bash
+grep -n "'^router\$'" jest.config.js
+node -e "const e5 = require('express'); const app = e5(); app.use(e5.json())" \
+  2>&1 | grep "Router is not"
+```
+
+**Cómo arreglarlo** (PR-B, `jest.config.js` + nuevo `jestResolver.js`):
+
+Remover la entrada `'^router$'` del `moduleNameMapper` y agregar un resolver
+personalizado que diferencia el origen del require:
+
+```js
+// jestResolver.js
+const path = require('path')
+const OUR_ROUTER_PATH = path.resolve(__dirname, 'src/router/index.js')
+
+module.exports = (moduleName, options) => {
+  if (moduleName === 'router') {
+    const fromNodeModules =
+      options.basedir &&
+      options.basedir.includes(path.sep + 'node_modules' + path.sep)
+
+    if (!fromNodeModules) {
+      return OUR_ROUTER_PATH
+    }
+  }
+
+  return options.defaultResolver(moduleName, options)
+}
+```
+
+```js
+// jest.config.js — cambios
+// ANTES: '^router$': '<rootDir>/src/router/index.js'
+// DESPUES: entrada removida + agregar:
+resolver: './jestResolver.js',
+```
+
+**Cómo probarlo:**
+```bash
+NODE_ENV=test node_modules/.bin/jest --forceExit --runInBand \
+  src/__test__/integration/http.integration.test.js
+```
+Debe pasar sin `TypeError: Router is not a constructor`.
+
+---
+
 ### BC-3: `devErrors` con 3 argumentos (pre-existente)
 
 **Qué cambia:**
@@ -559,6 +619,7 @@ node -e "console.log(require('./node_modules/express/package.json').version)"
 | `Middleware.secure()` no funciona como antes | Muy baja | Alto | Está cubierto por los integration tests del PR-A |
 | Body parsing diferente (qs/querystring) | Muy baja | Bajo | Express 5 mantiene `qs` con misma config `urlencoded({ extended: true })` |
 | `devErrors` bug causa respuestas incorrectas en dev | Pre-existente | Medio | Corregido en PR-A |
+| Jest `moduleNameMapper` `'^router$'` intercepta require interno de Express 5 | **Detectado en PR-B** | Alto | Corregido con `jestResolver.js` + removiendo entrada del mapper |
 
 ---
 

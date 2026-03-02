@@ -19,7 +19,6 @@ module.exports = {
     '^metadata/(.*)$': '<rootDir>/src/metadata/$1',
     '^gateways/(.*)$': '<rootDir>/src/gateways/$1',
     '^modules$': '<rootDir>/src/modules/index.js',
-    '^router$': '<rootDir>/src/router/index.js',
     '^pipe$': '<rootDir>/src/pipe/index.js',
     '^tasks/(.*)$': '<rootDir>/src/tasks/$1',
     '^validation/(.*)$': '<rootDir>/src/validation/$1'
@@ -53,6 +52,7 @@ module.exports = {
     }
   },
   coverageReporters: ['text', 'lcov', 'clover'],
+  resolver: './jestResolver.js',
   forceExit: true,
   testTimeout: 10000
 }

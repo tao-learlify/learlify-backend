@@ -43,9 +43,16 @@ router.post(
         })
     }
 
-    const alreadyProcessed = await db('stripe_events')
-      .where({ event_id: event.id })
-      .first()
+    let alreadyProcessed
+
+    try {
+      alreadyProcessed = await db('stripe_events')
+        .where({ event_id: event.id })
+        .first()
+    } catch (err) {
+      logger.error('stripe.webhook.db.read', { message: err.message })
+      return res.status(500).json({ error: 'Database error processing webhook' })
+    }
 
     if (alreadyProcessed) {
       logger.info('stripe.webhook.duplicate', { eventId: event.id })
