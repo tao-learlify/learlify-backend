@@ -36,11 +36,9 @@ router.post(
       event = stripe.webhooks.constructEvent(req.body, sig, WEBHOOK_SECRET)
     } catch (err) {
       logger.error('stripe.webhook.signature', { message: err.message })
-      return res
-        .status(400)
-        .json({
-          error: `Webhook signature verification failed: ${err.message}`
-        })
+      return res.status(400).json({
+        error: `Webhook signature verification failed: ${err.message}`
+      })
     }
 
     let alreadyProcessed
@@ -51,7 +49,9 @@ router.post(
         .first()
     } catch (err) {
       logger.error('stripe.webhook.db.read', { message: err.message })
-      return res.status(500).json({ error: 'Database error processing webhook' })
+      return res
+        .status(500)
+        .json({ error: 'Database error processing webhook' })
     }
 
     if (alreadyProcessed) {

@@ -86,9 +86,7 @@ class PlansService {
       return plans
     }
 
-    return Plan.query()
-      .where(options)
-      .withGraphJoined(this.#relation)
+    return Plan.query().where(options).withGraphJoined(this.#relation)
   }
 
   /**

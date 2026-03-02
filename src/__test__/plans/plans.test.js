@@ -25,9 +25,9 @@ jest.mock('utils/logger', () => ({
 // service to give it a no-op passthrough middleware instead.
 jest.mock('api/aws/aws.service', () => ({
   AmazonWebServices: jest.fn().mockImplementation(() => ({
-    fileInterceptor: jest.fn().mockReturnValue(
-      jest.fn().mockImplementation((req, res, next) => next())
-    )
+    fileInterceptor: jest
+      .fn()
+      .mockReturnValue(jest.fn().mockImplementation((req, res, next) => next()))
   }))
 }))
 
@@ -94,5 +94,3 @@ it('Get all plans', async () => {
 
   expect(response.status).toBe(200)
 })
-
-
