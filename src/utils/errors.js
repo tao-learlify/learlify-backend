@@ -34,7 +34,7 @@ export class UnauthorizedError extends Error {
 export class PermissionsError extends Error {
   constructor(msg) {
     super(msg)
-    this.message = msg || "Forbidden. You don't have the necessary permissions"
+    this.message = msg || 'Forbidden. You don\'t have the necessary permissions'
     this.status = 403
     this.name = 'PermissionsError'
   }
@@ -64,7 +64,7 @@ export class NotFound extends Error {
 export class PageNotFound extends Error {
   constructor(msg) {
     super(msg)
-    this.message = msg || "You provided a page number that doesn't exist."
+    this.message = msg || 'You provided a page number that doesn\'t exist.'
     this.status = 400
     this.name = 'PageNotFound'
   }
