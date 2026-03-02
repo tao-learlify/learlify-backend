@@ -33,19 +33,19 @@ module.exports = {
     '/src/scripts/'
   ],
   coverageThreshold: {
-    './src/api/authentication/': {
+    '<rootDir>/src/api/authentication/**': {
       branches: 60,
       lines: 60,
       functions: 60,
       statements: 60
     },
-    './src/api/packages/': {
+    '<rootDir>/src/api/packages/**': {
       branches: 60,
       lines: 60,
       functions: 60,
       statements: 60
     },
-    './src/api/jwt/': {
+    '<rootDir>/src/api/jwt/**': {
       branches: 60,
       lines: 60,
       functions: 60,
