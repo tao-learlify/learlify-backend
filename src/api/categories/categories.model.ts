@@ -1,23 +1,23 @@
-import { Model } from 'objection'
-
+import { Model, RelationMappings, JSONSchema, QueryBuilder } from 'objection'
 import Evaluation from 'api/evaluations/evaluations.model'
 import Stats from 'api/stats/stats.model'
 
 class Category extends Model {
-  static get tableName() {
+  id!: number
+  name!: string
+
+  static get tableName(): string {
     return 'category'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
-
       required: ['name'],
-
       properties: {
         id: { type: 'integer' },
         name: { type: 'string' }
@@ -25,7 +25,7 @@ class Category extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       evaluations: {
         relation: Model.HasOneRelation,
@@ -35,7 +35,6 @@ class Category extends Model {
           to: 'category.id'
         }
       },
-
       stats: {
         relation: Model.HasManyRelation,
         modelClass: Stats,
@@ -47,9 +46,9 @@ class Category extends Model {
     }
   }
 
-  static get modifiers () {
+  static get modifiers() {
     return {
-      name (builder) {
+      name(builder: QueryBuilder<Category>) {
         builder.select(['id', 'name'])
       }
     }

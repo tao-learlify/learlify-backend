@@ -1,3 +1,5 @@
+import type { Router as ExpressRouter } from 'express'
+import type { HttpConsumer } from '@types'
 import { Router } from 'decorators'
 import { CategoriesController } from './categories.controller'
 import { Middleware } from 'middlewares'
@@ -7,11 +9,15 @@ import { Middleware } from 'middlewares'
   route: '/categories'
 })
 class CategoriesRouter {
+  declare categories: ExpressRouter
+  declare consumer: HttpConsumer
+  private controller: CategoriesController
+
   constructor() {
     this.controller = new CategoriesController()
   }
 
-  httpConsumer() {
+  httpConsumer(): HttpConsumer {
     this.categories.get(
       '/',
       [Middleware.authenticate],
@@ -21,6 +27,5 @@ class CategoriesRouter {
     return this.consumer
   }
 }
-
 
 export default new CategoriesRouter().httpConsumer()

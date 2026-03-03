@@ -15,3 +15,4 @@ export declare function Readonly(
 ): PropertyDescriptor
 
 export declare function Controller(target: Function): void
+export declare function Router(options: { alias: string; route: string }): ClassDecorator
