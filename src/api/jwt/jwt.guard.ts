@@ -1,11 +1,27 @@
-import { Strategy, ExtractJwt } from 'passport-jwt'
+import type { Request } from 'express'
+import { Strategy, ExtractJwt, VerifiedCallback } from 'passport-jwt'
+import type { JwtPayload } from 'jsonwebtoken'
 import { ConfigService } from 'api/config/config.service'
 import { UsersService } from 'api/users/users.service'
 import { Logger } from 'api/logger'
 import { isTokenBlocked } from './jwt.blocklist'
 
+type JwtUserPayload = JwtPayload & { id: number }
+
 const { provider } = new ConfigService()
-const { getOne } = new UsersService()
+const { getOne } = new UsersService() as unknown as {
+  getOne: (opts: { id: number }) => Promise<{
+    id: number
+    email: string
+    firstName: string
+    lastName: string
+    role: string
+    googleId?: string
+    facebookId?: string
+    stripeCustomerId?: string
+    lastLogin?: string
+  } | undefined>
+}
 
 const extractor = ExtractJwt.fromAuthHeaderAsBearerToken()
 
@@ -16,7 +32,7 @@ const JsonWebTokenGuard = new Strategy(
     passReqToCallback: true,
     algorithms: ['HS256']
   },
-  async (req, payload, done) => {
+  async (req: Request, payload: JwtUserPayload, done: VerifiedCallback) => {
     try {
       const rawToken = extractor(req)
 
@@ -49,7 +65,7 @@ const JsonWebTokenGuard = new Strategy(
       return done(null, false)
     } catch (err) {
       Logger.Service.error('Unauthorized Request.', err)
-      return done(err)
+      return done(err as Error)
     }
   }
 )

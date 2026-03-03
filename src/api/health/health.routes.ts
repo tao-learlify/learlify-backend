@@ -1,22 +1,29 @@
-import express from 'express'
+  import express from 'express'
+import type { Request, Response, NextFunction } from 'express'
 import db from 'config/db'
 import { getRedisClient } from 'config/redis'
 import logger from 'utils/logger'
 
 const router = express.Router()
 
-async function probeDb() {
+interface ProbeResult {
+  status: 'ok' | 'down' | 'unconfigured'
+  latencyMs?: number
+  error?: string
+}
+
+async function probeDb(): Promise<ProbeResult> {
   const start = Date.now()
   try {
-    await db.raw('SELECT 1')
+    await (db as unknown as { raw(sql: string): Promise<unknown> }).raw('SELECT 1')
     return { status: 'ok', latencyMs: Date.now() - start }
   } catch (err) {
-    logger.error('health.db.probe', { message: err.message })
-    return { status: 'down', latencyMs: Date.now() - start, error: err.message }
+    (logger as unknown as { error(k: string, v: unknown): void }).error('health.db.probe', { message: (err as Error).message })
+    return { status: 'down', latencyMs: Date.now() - start, error: (err as Error).message }
   }
 }
 
-async function probeRedis() {
+async function probeRedis(): Promise<ProbeResult> {
   const redis = getRedisClient()
 
   if (!redis) {
@@ -25,15 +32,15 @@ async function probeRedis() {
 
   const start = Date.now()
   try {
-    await redis.ping()
+    await (redis as unknown as { ping(): Promise<unknown> }).ping()
     return { status: 'ok', latencyMs: Date.now() - start }
   } catch (err) {
-    logger.error('health.redis.probe', { message: err.message })
-    return { status: 'down', latencyMs: Date.now() - start, error: err.message }
+    (logger as unknown as { error(k: string, v: unknown): void }).error('health.redis.probe', { message: (err as Error).message })
+    return { status: 'down', latencyMs: Date.now() - start, error: (err as Error).message }
   }
 }
 
-router.get('/health', async (_req, res, next) => {
+router.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [dbProbe, redisProbe] = await Promise.all([probeDb(), probeRedis()])
 

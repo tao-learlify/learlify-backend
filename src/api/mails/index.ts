@@ -1,23 +1,15 @@
 import sgMail from '@sendgrid/mail'
+import type { MailData } from '@sendgrid/helpers/classes/mail'
 import { MODE } from 'common/process'
 
-/**
- * @see https://sendgrid.com/docs/for-developers/sending-email/v3-nodejs-code-example/
- */
-
-/**
- * @description Takes these arguments and returns a promise sending an email.
- * @param {{ to: string, from: string, subject: string, text: string, html: string}} msgOptions
- * @returns {Promise<any>}
- */
-export default function sendgridService(msgOptions) {
+export default function sendgridService(msgOptions: MailData): Promise<void> {
   if (process.env.NODE_ENV === MODE.development) {
     Object.assign(msgOptions, {
       to: process.env.EMAIL_DEVELOPMENT || 'andersonav37@gmail.com'
     })
   }
   return new Promise(resolve => {
-    sgMail.send(msgOptions).then(resolve).catch(resolve)
+    sgMail.send(msgOptions).then(() => resolve()).catch(() => resolve())
   })
 }
 
