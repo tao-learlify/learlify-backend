@@ -1,4 +1,5 @@
 import { CronSchedule, Bind } from 'decorators'
+import type { CronTrigger } from 'decorators'
 import { Logger } from 'api/logger'
 import { ConfigService } from 'api/config/config.service'
 import { PackagesService } from 'api/packages/packages.service'
@@ -6,20 +7,36 @@ import { MailService } from 'api/mails/mails.service'
 import { sendgridConfig } from 'api/mails'
 import moment from 'moment-timezone'
 import i18n from 'i18n'
+import type {
+  PackageTaskDTO,
+  PackageNotifyFilterDTO,
+  PackageExpireFilterDTO
+} from 'api/packages/packages.types'
+
+type ProviderTimezoneDTO = {
+  TZ: string
+  TIMEZONE_FORMAT: string
+}
 
 @CronSchedule
 class PackagesTasks {
+  private readonly logger: typeof Logger.Service
+  private readonly mailService: MailService
+  private readonly configService: ConfigService
+  private readonly packagesService: PackagesService
+  trigger!: CronTrigger
+
   constructor() {
     this.logger = Logger.Service
+    this.mailService = new MailService()
     this.configService = new ConfigService()
     this.packagesService = new PackagesService()
-    this.mailService = new MailService()
   }
 
   @Bind
-  async notify() {
-    this.trigger.schedule('0 */12 * * *', async () => {
-      const provider = this.configService.provider
+  async notify(): Promise<void> {
+    this.trigger.schedule('0 */12 * * *', async (): Promise<void> => {
+      const provider = this.configService.provider as unknown as ProviderTimezoneDTO
 
       try {
         const today = moment().tz(provider.TZ).format(provider.TIMEZONE_FORMAT)
@@ -29,11 +46,11 @@ class PackagesTasks {
           .add(5, 'days')
           .format(provider.TIMEZONE_FORMAT)
 
-        const packages = await this.packagesService.getAll({
+        const packages = (await this.packagesService.getAll({
           date: {
             ranges: [today, expirationDate]
           }
-        })
+        } as PackageNotifyFilterDTO)) as unknown as PackageTaskDTO[]
 
         for (const pack of packages) {
           await this.packagesService.updateOne({
@@ -72,28 +89,25 @@ class PackagesTasks {
         this.logger.debug('Total packages notified affected: ', {
           total: packages.length
         })
-      } catch (err) {
-        this.logger.error(err.name)
-        this.logger.error(err.stack)
+      } catch (err: unknown) {
+        const error = err as { name?: unknown; stack?: unknown }
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
       }
     })
   }
 
   @Bind
-  async expire() {
-    this.trigger.schedule('0 */12 * * *', async () => {
-      const provider = this.configService.provider
+  async expire(): Promise<void> {
+    this.trigger.schedule('0 */12 * * *', async (): Promise<void> => {
+      const provider = this.configService.provider as unknown as ProviderTimezoneDTO
 
       try {
-        /**
-         * @description
-         * Getting the expired packages.
-         */
-        const packages = await this.packagesService.getAll({
+        const packages = (await this.packagesService.getAll({
           date: {
             today: moment().tz(provider.TZ).format(provider.TIMEZONE_FORMAT)
           }
-        })
+        } as PackageExpireFilterDTO)) as unknown as PackageTaskDTO[]
 
         this.logger.debug('Total packages expires:', { total: packages.length })
 
@@ -130,9 +144,10 @@ class PackagesTasks {
           `
           })
         }
-      } catch (err) {
-        this.logger.error(err.name)
-        this.logger.error(err.stack)
+      } catch (err: unknown) {
+        const error = err as { name?: unknown; stack?: unknown }
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
       }
     })
   }

@@ -1,5 +1,6 @@
 import { OPEN_CLASS_ROOM, EXPIRE_CLASS_ROOM } from 'gateways/events'
 import { Bind, CronSchedule } from 'decorators'
+import type { CronTrigger } from 'decorators'
 import { Logger } from 'api/logger'
 import { MailService } from 'api/mails/mails.service'
 import { ScheduleService } from 'api/schedule/schedule.service'
@@ -8,32 +9,82 @@ import { ConfigService } from 'api/config/config.service'
 import { sendgridConfig } from 'api/mails'
 import { Sockets } from '../index'
 import moment from 'moment'
+import type { ConfigurationProvider } from '@types'
+import type {
+  ScheduleTaskDTO,
+  ScheduleNotifiedFilterDTO,
+  ScheduleExpireClassRoomFilterDTO,
+  ScheduleOpenClassRoomFilterDTO,
+  ScheduleDeleteNotTakenFilterDTO,
+  ScheduleDeleteByPayloadDTO
+} from 'api/schedule/schedule.types'
+
+type ErrorLike = {
+  name?: unknown
+  stack?: unknown
+}
+
+type ScheduleControllerWithProps = {
+  props: {
+    format: string
+  }
+}
+
+type StreamGatewayLike = {
+  stream: {
+    to(room: string): {
+      emit(event: string, payload: unknown): unknown
+    }
+  }
+}
+
+type ScheduleServiceLike = {
+  getAll(options: Record<string, unknown>): Promise<unknown>
+  updateOne(schedule: Record<string, unknown>): Promise<unknown>
+  expireClassRoomAndUpdate(source: { id: number }): Promise<unknown>
+  deleteBy(source: ScheduleDeleteByPayloadDTO): Promise<unknown>
+}
+
+type ScheduleServiceStatic = {
+  scheduleTimezoneConversion(schedule: ScheduleTaskDTO, timezone: string): ScheduleTaskDTO
+}
+
+const scheduleServiceStatic = ScheduleService as unknown as ScheduleServiceStatic
 
 @CronSchedule
 class ScheduleTasks {
+  private readonly logger: typeof Logger.Service
+  private readonly mailService: MailService
+  private readonly scheduleController: ScheduleControllerWithProps
+  private readonly configService: ConfigService
+  private readonly scheduleService: ScheduleServiceLike
+  private readonly gateways: StreamGatewayLike
+  private readonly props: { anticipationStartDate: number }
+  trigger!: CronTrigger
+
   constructor() {
     this.logger = Logger.Service
     this.mailService = new MailService()
-    this.scheduleController = new ScheduleController()
+    this.scheduleController = new ScheduleController() as unknown as ScheduleControllerWithProps
     this.configService = new ConfigService()
-    this.scheduleService = new ScheduleService()
-    this.gateways = Sockets
+    this.scheduleService = new ScheduleService() as unknown as ScheduleServiceLike
+    this.gateways = Sockets as unknown as StreamGatewayLike
     this.props = {
       anticipationStartDate: 10
     }
   }
 
-  get format() {
+  get format(): string {
     return this.scheduleController.props.format
   }
 
-  get config() {
+  get config(): ConfigurationProvider {
     return this.configService.provider
   }
 
   @Bind
-  async notified() {
-    this.trigger.schedule('*/5 * * * *', async () => {
+  async notified(): Promise<void> {
+    this.trigger.schedule('*/5 * * * *', async (): Promise<void> => {
       try {
         this.logger.info('Notified has been executed')
 
@@ -44,24 +95,16 @@ class ScheduleTasks {
 
         this.logger.debug('date: notified', date)
 
-        /**
-         * @description
-         * This will give us all schedules from today.
-         */
-        const schedules = await this.scheduleService.getAll({
+        const schedules = (await this.scheduleService.getAll({
           date,
           taken: true,
           notified: false
-        })
+        } as ScheduleNotifiedFilterDTO)) as ScheduleTaskDTO[]
 
         this.logger.debug('schedules', schedules)
 
-        /**
-         * @description
-         * This will sends a notification to the user that the class is able to start today.
-         */
         for (const schedule in schedules) {
-          const current = ScheduleService.scheduleTimezoneConversion(
+          const current = scheduleServiceStatic.scheduleTimezoneConversion(
             schedules[schedule],
             this.config.TZ
           )
@@ -96,10 +139,6 @@ class ScheduleTasks {
           `
           })
 
-          /**
-           * @description
-           * Patching schedule to notified that will not be recreated.
-           */
           await this.scheduleService.updateOne({
             id: current.id,
             notified: true
@@ -114,7 +153,7 @@ class ScheduleTasks {
                 meeting: meetingIndex
               })
 
-              const timezone = ScheduleService.scheduleTimezoneConversion(
+              const timezone = scheduleServiceStatic.scheduleTimezoneConversion(
                 schedules[schedule],
                 meetingIndex.timezone
               )
@@ -149,88 +188,81 @@ class ScheduleTasks {
             }
           }
 
-          /**
-           * @description
-           * Logging about the scheduled notified.
-           */
           this.logger.info(
             `Schedule ${schedules[schedule].id} has been notified.`
           )
         }
-      } catch (err) {
-        this.logger.error(err.name)
-        this.logger.error(err.stack)
+      } catch (err: unknown) {
+        const error = err as ErrorLike
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
       }
     })
   }
 
   @Bind
-  async expireClassRoom() {
-    this.trigger.schedule('*/5 * * * *', async () => {
-        try {
-          const date = moment().utc().format(this.format)
+  async expireClassRoom(): Promise<void> {
+    this.trigger.schedule('*/5 * * * *', async (): Promise<void> => {
+      try {
+        const date = moment().utc().format(this.format)
 
-          const schedules = await this.scheduleService.getAll({
-            date: {
-              expire: date
-            },
-            streaming: true
-          })
+        const schedules = (await this.scheduleService.getAll({
+          date: {
+            expire: date
+          },
+          streaming: true
+        } as ScheduleExpireClassRoomFilterDTO)) as ScheduleTaskDTO[]
 
-          this.logger.info('expired classroom', schedules)
+        this.logger.info('expired classroom', schedules)
 
-          schedules.forEach(schedule => {
-            const room = schedule.classes.name
+        schedules.forEach((schedule: ScheduleTaskDTO): void => {
+          const room = (schedule.classes as { name: string }).name
 
-            this.logger.info('Expire:', { room })
+          this.logger.info('Expire:', { room })
 
-            if (room) {
-              this.gateways.stream.to(room).emit(EXPIRE_CLASS_ROOM, {
-                notification: true,
-                room
-              })
-            }
-          })
-
-          /**
-           * @description
-           * This will close up all classroom availabls in that hour.
-           */
-          const closeStreaming = schedules.map(schedule =>
-            this.scheduleService.expireClassRoomAndUpdate({
-              id: schedule.id
+          if (room) {
+            this.gateways.stream.to(room).emit(EXPIRE_CLASS_ROOM, {
+              notification: true,
+              room
             })
-          )
+          }
+        })
 
-          const total = await Promise.all(closeStreaming)
+        const closeStreaming = schedules.map((schedule: ScheduleTaskDTO) =>
+          this.scheduleService.expireClassRoomAndUpdate({
+            id: schedule.id
+          })
+        )
 
-          this.logger.info('Total expiration', { schedule: total.length })
-        } catch (err) {
-          this.logger.error(err.name)
-          this.logger.error(err.stack)
-   
-        }
+        const total = await Promise.all(closeStreaming)
+
+        this.logger.info('Total expiration', { schedule: total.length })
+      } catch (err: unknown) {
+        const error = err as ErrorLike
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
+      }
     })
   }
 
   @Bind
-  async openClassRoom() {
-    this.trigger.schedule('*/5 * * * *', async () => {
+  async openClassRoom(): Promise<void> {
+    this.trigger.schedule('*/5 * * * *', async (): Promise<void> => {
       try {
         const date = moment().utc().format(this.format)
 
         this.logger.info('date openClassRoom', { date })
 
-        const data = await this.scheduleService.getAll({
+        const data = (await this.scheduleService.getAll({
           date: {
             now: date,
             notExpired: true
           },
           notified: true,
-          taken: true,
-        })
+          taken: true
+        } as ScheduleOpenClassRoomFilterDTO)) as ScheduleTaskDTO[]
 
-        const schedules = data.filter(schedule => {
+        const schedules = data.filter((schedule: ScheduleTaskDTO): boolean => {
           if (schedule.classes) {
             return schedule.classes.expired === false
           }
@@ -244,7 +276,7 @@ class ScheduleTasks {
         })
 
         if (availableStreamingCall) {
-          schedules.forEach(schedule => {
+          schedules.forEach((schedule: ScheduleTaskDTO): void => {
             if (schedule.classes) {
               if (schedule.classes) {
                 this.logger.info(`Tunnel ping to: ${schedule.classes.name}`)
@@ -253,7 +285,7 @@ class ScheduleTasks {
               schedule.classes.meetings.forEach(meet => {
                 if (meet.user) {
                   this.logger.info(`Notification sended to ${meet.user.email}`)
-  
+
                   this.gateways.stream.to(meet.user.email).emit(OPEN_CLASS_ROOM, {
                     notification: true,
                     schedules: schedules
@@ -263,11 +295,7 @@ class ScheduleTasks {
             }
           })
 
-          /**
-           * @description
-           * Getting all schedules, to update with parallelism.
-           */
-          const openStreaming = schedules.map(schedule =>
+          const openStreaming = schedules.map((schedule: ScheduleTaskDTO) =>
             this.scheduleService.updateOne({
               id: schedule.id,
               streaming: true
@@ -280,25 +308,26 @@ class ScheduleTasks {
             total
           })
         }
-      } catch (err) {
-        this.logger.error(err.name)
-        this.logger.error(err.stack)
+      } catch (err: unknown) {
+        const error = err as ErrorLike
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
       }
     })
   }
 
   @Bind
-  async deleteSchedulesNotTakens() {
-    this.trigger.schedule('0 */24 * * *', async () => {
+  async deleteSchedulesNotTakens(): Promise<void> {
+    this.trigger.schedule('0 */24 * * *', async (): Promise<void> => {
       try {
         const now = moment().utc().format(this.format)
 
-        const inactives = await this.scheduleService.getAll({
+        const inactives = (await this.scheduleService.getAll({
           date: {
             expire: now
           },
           taken: false
-        })
+        } as ScheduleDeleteNotTakenFilterDTO)) as ScheduleTaskDTO[]
 
         for (const inactive in inactives) {
           const current = inactives[inactive]
@@ -330,11 +359,12 @@ class ScheduleTasks {
         })
 
         this.logger.info(
-          `${schedules} Schedules has been deleted from database.`
+          `${schedules as unknown as string} Schedules has been deleted from database.`
         )
-      } catch (err) {
-        this.logger.error(err.name)
-        this.logger.error(err.stack)
+      } catch (err: unknown) {
+        const error = err as ErrorLike
+        this.logger.error(error.name)
+        this.logger.error(error.stack)
       }
     })
   }

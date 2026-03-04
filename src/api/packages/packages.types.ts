@@ -98,3 +98,28 @@ export interface WritingsAndSpeakingsCount {
   speakings?: unknown
   writings?: unknown
 }
+
+export interface PackageTaskUserDTO {
+  email: string
+  lang: string
+  firstName: string
+}
+
+export interface PackageTaskDTO {
+  id: number
+  user: PackageTaskUserDTO
+}
+
+export interface PackageNotifyFilterDTO {
+  date: {
+    ranges: [string, string]
+  }
+  [key: string]: unknown
+}
+
+export interface PackageExpireFilterDTO {
+  date: {
+    today: string
+  }
+  [key: string]: unknown
+}
