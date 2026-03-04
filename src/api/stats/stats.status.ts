@@ -4,11 +4,11 @@ const STATUS = {
   B1: 'B1',
   A2: 'A2',
   A1: 'A1',
-  asArray: function() {
+  asArray: function(): string[] {
     return [
       this.C1, this.B2, this.B1, this.A2, this.A1
     ]
   }
 }
 
-module.exports = STATUS
+export = STATUS

@@ -7,11 +7,18 @@ import { NotFoundException } from 'exceptions'
 import { ProgressService } from 'api/progress/progress.service'
 import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
-
 import { Categories } from 'metadata/categories'
 import { Models } from 'metadata/models'
+import type { Request, Response } from 'express'
 
 class StatsController {
+  private statsService: StatsService
+  private examsService: ExamsService
+  private categoriesService: CategoriesService
+  private progressService: ProgressService
+  private modelService: ModelsService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.statsService = new StatsService()
     this.examsService = new ExamsService()
@@ -20,13 +27,9 @@ class StatsController {
     this.modelService = new ModelsService()
     this.logger = Logger.Service
   }
-  /**
-   *
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
+
   @Bind
-  async getAll(req, res) {
+  async getAll(req: Request, res: Response): Promise<Response> {
     const model = await this.modelService.getOne({
       name: req.query.model
     })
@@ -53,47 +56,48 @@ class StatsController {
         )
       )
 
-      let data = []
+      let data: (string | undefined)[] = []
 
       for (const id in ids) {
         const stats = await Promise.all(
           categories.map(category =>
             this.statsService.getAll(
               {
-                examId: ids[id],
-                userId: req.user.id,
-                categoryId: category.id
+                examId: (ids as unknown as Record<string, unknown>[])[id],
+                userId: req.user!.id,
+                categoryId: (category as unknown as Record<string, unknown>).id
               },
               { model: model.name }
             )
           )
         )
 
-        data[id] = stats.flat()
+        ;(data as unknown[])[id] = stats.flat()
       }
 
-      data = data.map(keys => {
-        const output = keys.reduce((accumulator, stats) => {
+      data = (data as unknown as Record<string, unknown>[][]).map(keys => {
+        const output = keys.reduce((accumulator: number, stats: Record<string, unknown>) => {
           switch (model.name) {
             case Models.APTIS:
-              return accumulator + stats.points
+              return accumulator + (stats.points as number)
 
             case Models.IELTS:
-              return (accumulator += stats.bandScore)
+              return (accumulator += stats.bandScore as number)
           }
+          return accumulator
         }, 0)
 
         return StatsFunctions.getDataScore(
-          model,
+          model as unknown as { name: string },
           output / keys.length,
-          categories[0].name
+          (categories[0] as unknown as Record<string, unknown>).name as string
         )
       })
 
       return res.status(200).json({
         response: {
           chart: {
-            labels: ids.map(StatsFunctions.transformIdToIndex),
+            labels: (ids as unknown[]).map(StatsFunctions.transformIdToIndex),
             datasets: [
               {
                 label: 'General',
@@ -101,7 +105,7 @@ class StatsController {
               }
             ]
           },
-          labels: StatsFunctions.getLabels(model)
+          labels: StatsFunctions.getLabels(model as unknown as { name: string })
         },
         statusCode: 200
       })

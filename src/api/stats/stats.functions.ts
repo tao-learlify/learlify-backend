@@ -1,6 +1,7 @@
 import { Models } from 'metadata/models'
 import { Categories } from 'metadata/categories'
 import { sum } from 'functions'
+import type { ScoreContext, ScoreResult, CategoryScoreConfig, ModelRef } from './stats.types'
 
 const A1 = 'A1'
 const A2 = 'A2'
@@ -8,7 +9,7 @@ const B1 = 'B1'
 const B2 = 'B2'
 const C1 = 'C1'
 
-const score = {
+const score: Record<string, Record<string, CategoryScoreConfig>> = {
   [Models.APTIS]: {
     [Categories.Core]: {
       points: 1,
@@ -130,27 +131,15 @@ const score = {
 }
 
 class StatsFunctions {
-  /**
-   * @typedef {Object} Score
-   * @property {number} value
-   * @property {string} model
-   * @property {string} category
-   *
-   * @param {Score} context
-   */
-  static score(context, forStats) {
+  static score(context: ScoreContext, forStats?: boolean): ScoreResult | undefined {
     if (context.model === Models.APTIS) {
-      /**
-       * @description
-       * Getting the current properties for scoring.
-       */
       const ref = score[context.model][context.category]
 
       const points = forStats
         ? context.value
-        : Math.round(context.value * ref.points)
+        : Math.round(context.value * ref.points!)
 
-      const marking = ref.ranges.find(
+      const marking = (ref.ranges as [number, number, string][]).find(
         ([min, max]) => max >= points && min <= points
       )
 
@@ -164,7 +153,7 @@ class StatsFunctions {
     if (context.model === Models.IELTS) {
       const ref = score[context.model][context.category]
 
-      const bandScore = ref.ranges.find(
+      const bandScore = (ref.ranges as [number, number, number][]).find(
         ([max, min]) => max >= context.value && min <= context.value
       )
 
@@ -176,15 +165,10 @@ class StatsFunctions {
     }
   }
 
-  /**
-   * @param {[]} results
-   * @param {string} model
-   * @param {string} context
-   */
-  static getAverageSkills(skills, model, context) {
-    function range(value, marking) {
+  static getAverageSkills(skills: number, model: string, context: string): string | undefined {
+    function range(value: number, marking: (string | number)[][]): (string | number)[][] {
       return marking.filter(([min, max]) => {
-        return max >= value && min <= value
+        return (max as number) >= value && (min as number) <= value
       })
     }
 
@@ -193,16 +177,11 @@ class StatsFunctions {
 
       const dataset = range(skills, data.ranges).flat()
 
-      return dataset[2]
+      return dataset[2] as string
     }
   }
 
-  /**
-   * Get the avg chart index.
-   * @param {strng} model
-   * @param {string} category
-   */
-  static getDataScore(model, points = 0, category) {
+  static getDataScore(model: ModelRef, points: number = 0, category: string): string | undefined {
     const labels = StatsFunctions.getLabels(model)
 
     if (model.name === Models.APTIS) {
@@ -210,9 +189,9 @@ class StatsFunctions {
         category: category,
         model: model.name,
         value: points
-      })
+      })!
 
-      const label = Object.keys(labels).find(label => labels[label] === marking)
+      const label = Object.keys(labels!).find(label => labels![label] === marking)
 
       return label
     }
@@ -220,7 +199,7 @@ class StatsFunctions {
     if (model.name === Models.IELTS) {
       const label = Math.round(points).toString()
 
-      if (isNaN(label)) {
+      if (isNaN(Number(label))) {
         return '0'
       }
 
@@ -228,11 +207,7 @@ class StatsFunctions {
     }
   }
 
-  /**
-   * Get the labels for graphics charts.
-   * @param {string} model
-   */
-  static getLabels(model) {
+  static getLabels(model: ModelRef): Record<string, string> | undefined {
     switch (model.name) {
       case Models.APTIS:
         return {
@@ -259,47 +234,24 @@ class StatsFunctions {
     }
   }
 
-  /**
-   * [[], [], [], []]
-   * @param {number [][]} data
-   * @param {{ model: { name: string }, category: { name: string }}}
-   */
-  static updateWithTeacherScore(data, { model, category }) {
+  static updateWithTeacherScore(data: number[][], { model, category }: { model: ModelRef; category: ModelRef }): ScoreResult | undefined {
     if (model.name === Models.APTIS) {
       if (
         category.name === Categories.Writing ||
         category.name === Categories.Speaking
       ) {
-        /**
-         * @description
-         * We should have a array of array of numbers.
-         * Then we should calculate our input that is "data"
-         * @example
-         * updatwWithTeacherScore([[0, 0, 0], [0, 0, 0], [0, 0, 1]]) => this will get our vale.
-         * @type {number}
-         */
-
-        /**
-         * @description
-         * When writing is being evaluated only will be allocated based on index
-         * Meanwhile Speaking have multiples values of array.
-         */
         const flatScore = data
           .map((scores, index) =>
             scores
               .map((current, subIndex) => {
                 return category.name === Categories.Writing
-                  ? score[Models.APTIS][category.name].score[index][current]
-                  : score[Models.APTIS][category.name].score[index][subIndex][current]
+                  ? (score[Models.APTIS][category.name].score as number[][])[index][current]
+                  : (score[Models.APTIS][category.name].score as number[][][])[index][subIndex][current]
               })
               .reduce(sum, 0)
           )
           .reduce(sum, 0)
 
-        /**
-         * @description
-         * Getting the current output score.
-         */
         return StatsFunctions.score(
           {
             model: model.name,
@@ -311,17 +263,9 @@ class StatsFunctions {
       }
     }
 
-    /**
-     * @description
-     * BandScore output.
-     */
     if (model.name === Models.IELTS) {
       const initial = 0
-      /**
-       * @description
-       * First of all, we need to first reduce all input data.
-       * @type {number}
-       */
+
       const bandScore = data.reduce((accumulator, localScore) => {
         const avg =
           localScore.reduce((total, input) => total + input, initial) /
@@ -338,11 +282,7 @@ class StatsFunctions {
     }
   }
 
-  /**
-   * @param {number} _
-   * @param {number} index
-   */
-  static transformIdToIndex(id, index) {
+  static transformIdToIndex(_id: unknown, index: number): number {
     return index + 1
   }
 }

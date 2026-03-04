@@ -1,7 +1,7 @@
 import { checkSchema } from 'express-validator'
 
-export class Stats {
-  get create () {
+export class StatsPipe {
+  get create(): ReturnType<typeof checkSchema> {
     return checkSchema({
       marking: {
         in: 'body',
@@ -34,8 +34,8 @@ export class Stats {
       }
     })
   }
-  
-  get getAll () {
+
+  get getAll(): ReturnType<typeof checkSchema> {
     return checkSchema({
       model: {
         in: 'query'
@@ -44,5 +44,4 @@ export class Stats {
   }
 }
 
-
-export const pipe = new Stats()
+export const pipe = new StatsPipe()

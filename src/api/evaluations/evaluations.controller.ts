@@ -360,7 +360,7 @@ class EvaluationsController {
         const stats = StatsFunctions.updateWithTeacherScore(score, {
           category: evaluationCategory as { name: string },
           model: evaluationExam.model as { name: string }
-        }) as Record<string, unknown>
+        }) as unknown as Record<string, unknown>
 
         const forStats = {
           categoryId: evaluationCategory.id,

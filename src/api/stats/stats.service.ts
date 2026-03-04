@@ -2,28 +2,18 @@ import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
 import Stats from './stats.model'
 import Progress from 'api/progress/progress.model'
-
 import { Models } from 'metadata/models'
-
-/**
- * @typedef {Object} Stat
- * @property {number} categoryId
- * @property {number} userId
- * @property {{}} trx
- */
-
-/**
- * @typedef {Object} StatModel
- * @property {number} id
- * @property {number} userId
- * @property {'C1' | 'B2' | 'B1' | 'A2' | 'A1'} marking
- * @property {number} points
- * @property {number} examId
- * @property {Date} createdAt
- * @property {Date} updatedAt
- */
+import type { StatCreateParams, StatsAndProgressData } from './stats.types'
 
 export class StatsService {
+  relationShip: {
+    getAll: { exam: { model: { $modify: string[] }; $modify: string[] } }
+    getAllWithExam: string
+  }
+  limitStatus: number
+  logger: typeof Logger.Service
+  clientAttributes: string[]
+
   constructor() {
     this.relationShip = {
       getAll: {
@@ -46,22 +36,14 @@ export class StatsService {
       'createdAt'
     ]
   }
-  /**
-   *
-   * @param {Stat} stats
-   * @returns {Promise<Stat.<StatModel>>}
-   */
+
   @Bind
-  create({ trx, ...stats }) {
+  create({ trx, ...stats }: StatCreateParams) {
     return Stats.query(trx).insertAndFetch({ ...stats })
   }
 
-  /**
-   * @param {Stat} stats
-   * @returns {Promise<Stat.<StatModel []>}
-   */
   @Bind
-  getAll(stats, { model }) {
+  getAll(stats: Record<string, unknown>, { model }: { model: string }) {
     switch (model) {
       case Models.APTIS:
         return Stats.query()
@@ -82,7 +64,7 @@ export class StatsService {
   }
 
   @Bind
-  async createStatsAndRestartProgress(data) {
+  async createStatsAndRestartProgress(data: StatsAndProgressData) {
     try {
       const transaction = await Stats.knex().transaction(async trx => {
         try {
@@ -122,7 +104,7 @@ export class StatsService {
     }
   }
 
-  async getOne({ userId, examId, categoryId }) {
+  async getOne({ userId, examId, categoryId }: { userId: number; examId: number; categoryId: number }) {
     const limit = 1
 
     const [stat] = await Stats.query()

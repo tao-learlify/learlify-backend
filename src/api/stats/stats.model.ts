@@ -1,25 +1,31 @@
 import { Model } from 'objection'
+import type { JSONSchema, RelationMappings, ModelClass } from 'objection'
 import User from 'api/users/users.model'
 import Category from 'api/categories/categories.model'
 import Exam from 'api/exams/exams.model'
 import Evaluation from 'api/evaluations/evaluations.model'
 
 class Stats extends Model {
-  /**
-   * @returns {string}
-   */
-  static get tableName() {
+  id!: number
+  categoryId!: number
+  examId?: number
+  userId?: number
+  points?: number
+  bandScore?: number
+  marking?: string
+  evaluationId?: number
+  createdAt?: string
+  updatedAt?: string
+
+  static get tableName(): string {
     return 'stats'
   }
 
-  /**
-   * @returns {string}
-   */
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -35,11 +41,11 @@ class Stats extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       evaluation: {
         relation: Model.HasOneRelation,
-        modelClass: Evaluation,
+        modelClass: Evaluation as unknown as ModelClass<Model>,
         join: {
           from: 'stats.evaluationId',
           to: 'evaluations.id'
@@ -48,7 +54,7 @@ class Stats extends Model {
 
       user: {
         relation: Model.HasOneRelation,
-        modelClass: User,
+        modelClass: User as unknown as ModelClass<Model>,
         join: {
           from: 'stats.userId',
           to: 'users.id'
@@ -57,7 +63,7 @@ class Stats extends Model {
 
       category: {
         relation: Model.HasOneRelation,
-        modelClass: Category,
+        modelClass: Category as unknown as ModelClass<Model>,
         join: {
           from: 'stats.categoryId',
           to: 'category.id'
@@ -66,7 +72,7 @@ class Stats extends Model {
 
       exam: {
         relation: Model.HasOneRelation,
-        modelClass: Exam,
+        modelClass: Exam as unknown as ModelClass<Model>,
         join: {
           from: 'stats.examId',
           to: 'exams.id'
