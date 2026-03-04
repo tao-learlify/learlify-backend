@@ -1,8 +1,8 @@
-import { checkSchema } from 'express-validator'
+import { checkSchema, type ValidationChain } from 'express-validator'
 
 
 export class Exams {
-  get getOne () {
+  get getOne(): ValidationChain[] {
     return checkSchema({
       id: {
         in: 'params',
@@ -12,7 +12,7 @@ export class Exams {
     })
   }
 
-  get getAll () {
+  get getAll(): ValidationChain[] {
     return checkSchema({
       model: {
         in: 'query',

@@ -10,28 +10,33 @@ import { NotificationContext } from 'api/notifications/notification.context'
 import { NOTIFICATION } from 'gateways/events'
 import { EvaluationCompleted } from 'metadata/notifications'
 import Stats from 'api/stats/stats.model'
-
-/**
- * @typedef {Object} Source
- * @property {boolean} count
- * @property {number} id
- * @property {number} examId
- * @property {number} progressId
- * @property {number} teacherId
- * @property {{}} options
- */
-
-const relationShip = Symbol('relationShip')
-const clientAttributes = Symbol('clientAttributes')
+import type { EvaluationGetAllParams, EvaluationFindOneParams, EvaluationUpdateInput, PatchAndCreateResultsInput } from './evaluations.types'
 
 export class EvaluationsService {
+  #clientAttributes: {
+    evaluation: string[]
+    onlyName: string[]
+    exam: string[]
+  }
+
+  #relation: {
+    create: { relationShip: Record<string, unknown> }
+    getOne: { relationShip: string }
+    getAll: { relationShip: Record<string, unknown> }
+    updateOne: { relationShip: Record<string, unknown> }
+  }
+
+  private configService: ConfigService
+  private context: NotificationContext
+  private logger: typeof Logger.Service
+
   constructor() {
-    this[clientAttributes] = {
+    this.#clientAttributes = {
       evaluation: ['comments', 'createdAt', 'data', 'status'],
       onlyName: ['firstName', 'lastName', 'id'],
       exam: ['data']
     }
-    this[relationShip] = {
+    this.#relation = {
       create: {
         relationShip: {
           user: {
@@ -75,13 +80,9 @@ export class EvaluationsService {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {Source} evaluation
-   * @returns {Promise<Evaluation []>}
-   */
   @Bind
-  getAll({ page, paginationLimit, userId, modelId, ...evaluation }) {
-    const { getAll } = this[relationShip]
+  getAll({ page, paginationLimit, userId, modelId, ...evaluation }: EvaluationGetAllParams) {
+    const { getAll } = this.#relation
 
     
     if (userId) {
@@ -89,7 +90,7 @@ export class EvaluationsService {
         .withGraphJoined(getAll.relationShip)
         .where({ userId })
         .whereNotNull('data')
-        .where('exam.examModelId', modelId)
+        .where('exam.examModelId' as unknown as string, modelId as number)
         .page(
           page - 1,
           paginationLimit || this.configService.provider.PAGINATION_LIMIT
@@ -100,18 +101,18 @@ export class EvaluationsService {
     if (evaluation && evaluation.count) {
       return Evaluation.query()
         .count('status as count')
-        .where(evaluation.options)
+        .where(evaluation.options as Record<string, unknown>)
     }
 
     if (evaluation) {
       return evaluation.teacherId
         ? Evaluation.query()
-            .andWhere(evaluation)
+            .andWhere(evaluation as Record<string, unknown>)
             .page(page - 1, this.configService.provider.PAGINATION_LIMIT)
             .withGraphFetched(getAll.relationShip)
             .orderBy('createdAt', 'desc')
         : Evaluation.query()
-            .where(evaluation)
+            .where(evaluation as Record<string, unknown>)
             .andWhereNot({ status: STATUS.EVALUATED })
             .page(page - 1, this.configService.provider.PAGINATION_LIMIT)
             .withGraphFetched(getAll.relationShip)
@@ -126,27 +127,17 @@ export class EvaluationsService {
       .orderBy('createdAt', 'desc')
   }
 
-  /**
-   * @description Perform a lightweight query for extract specific data.
-   * @param {number | string} id
-   * @param {string []?} rows
-   * @returns {Promise<Evaluation[], Evaluation}
-   */
-  getTeacherEvaluation(id, rows = 'id') {
+  getTeacherEvaluation(id: number | string, rows: string | string[] = 'id') {
     return Evaluation.query().select(rows).where({ id })
   }
 
-  /**
-   * @param {Source} evaluation
-   * @returns {Promise<Evaluation>}
-   */
   @Bind
-  async findOne({ early, ...evaluation }) {
-    const { getOne } = this[relationShip]
+  async findOne({ early, ...evaluation }: EvaluationFindOneParams) {
+    const { getOne } = this.#relation
 
     if (early) {
       const [value] = await Evaluation.query()
-        .where(evaluation)
+        .where(evaluation as Record<string, unknown>)
         .limit(1)
         .orderBy('createdAt', 'DESC')
         .withGraphFetched({
@@ -158,45 +149,35 @@ export class EvaluationsService {
     }
 
     const formatted = await Evaluation.query()
-      .findById(evaluation.id)
+      .findById(evaluation.id as number)
       .withGraphJoined(getOne.relationShip)
 
-    return Object.assign(formatted, evaluation)
+    return Object.assign(formatted as unknown as Record<string, unknown>, evaluation)
   }
 
-  /**
-   * @param {Source} evaluation
-   * @returns {Promise<Evaluation>}
-   */
   @Bind
-  update(evaluation) {
-    const { updateOne } = this[relationShip]
+  update(evaluation: EvaluationUpdateInput) {
+    const { updateOne } = this.#relation
 
     return Evaluation.query()
       .patchAndFetchById(evaluation.id, evaluation)
       .withGraphFetched(updateOne.relationShip)
   }
 
-  /**
-   * @description
-   * Returns an evaluation for his creation.
-   * @param {{}} evaluation
-   * @returns {Promise<Evaluation>}
-   */
   @Bind
-  createEvaluation(evaluation) {
-    const { create } = this[relationShip]
+  createEvaluation(evaluation: Record<string, unknown>) {
+    const { create } = this.#relation
 
     return Evaluation.query()
-      .insert(evaluation)
+      .insert(evaluation as unknown as Partial<Evaluation>)
       .withGraphFetched(create.relationShip)
   }
 
   @Bind
-  async patchAndCreateResults(evaluation, forStats) {
+  async patchAndCreateResults(evaluation: PatchAndCreateResultsInput, forStats?: Record<string, unknown>) {
     const stream = new Socket()
 
-    const { updateOne } = this[relationShip]
+    const { updateOne } = this.#relation
 
     const returnValue = await Evaluation.knex().transaction(async T => {
       try {
@@ -207,14 +188,10 @@ export class EvaluationsService {
           })
           .withGraphFetched(updateOne.relationShip)
 
-        /**
-         * @description
-         * If stats are being created.
-         */
         if (forStats) {
           const stats = await Stats.query(T).insertAndFetch({
             ...forStats
-          })
+          } as unknown as Partial<typeof Stats.prototype>)
 
           this.logger.debug('stats', stats)
         }
@@ -229,11 +206,13 @@ export class EvaluationsService {
         const notification = await Notification.query(T).insertAndFetch({
           message: 'Default Evaluation Notification',
           read: false,
-          userId: update.user.id,
-          type: type.id
-        })
+          userId: (update as unknown as Record<string, unknown>).user
+            ? ((update as unknown as Record<string, unknown>).user as Record<string, unknown>).id
+            : undefined,
+          type: (type as unknown as Record<string, unknown>).id
+        } as unknown as Partial<typeof Notification.prototype>)
 
-        stream.socket.to(update.user.email).emit(NOTIFICATION, notification)
+        stream.socket.to(((update as unknown as Record<string, unknown>).user as Record<string, unknown>).email as string).emit(NOTIFICATION, notification)
 
         this.logger.debug('update', update)
 
@@ -251,3 +230,6 @@ export class EvaluationsService {
     return returnValue
   }
 }
+
+const _service = new EvaluationsService()
+export const getTeacherEvaluation = _service.getTeacherEvaluation.bind(_service)

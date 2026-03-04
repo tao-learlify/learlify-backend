@@ -1,12 +1,14 @@
-import { checkSchema } from 'express-validator'
+import { checkSchema, type ValidationChain } from 'express-validator'
 import { ConfigService } from 'api/config/config.service'
 
 export class Admin {
+  private configServce: ConfigService
+
   constructor() {
     this.configServce = new ConfigService()
   }
 
-  get createUser() {
+  get createUser(): ValidationChain[] {
     const { nameOptions } = this.configServce
 
     return checkSchema({
@@ -17,12 +19,12 @@ export class Admin {
       firstName: {
         in: 'body',
         isString: true,
-        isLength: nameOptions
+        isLength: { options: nameOptions }
       },
       lastName: {
         in: 'body',
         isString: true,
-        isLength: nameOptions
+        isLength: { options: nameOptions }
       },
       role: {
         in: 'body',
@@ -36,7 +38,7 @@ export class Admin {
     })
   }
 
-  get viewInfo () {
+  get viewInfo(): ValidationChain[] {
     return checkSchema({
       email: {
         in: 'query',

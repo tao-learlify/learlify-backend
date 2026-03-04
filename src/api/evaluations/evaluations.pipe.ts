@@ -1,7 +1,7 @@
-import { checkSchema } from 'express-validator'
+import { checkSchema, type ValidationChain } from 'express-validator'
 
 class Evaluations {
-  get getOne() {
+  get getOne(): ValidationChain[] {
     return checkSchema({
       id: {
         errorMessage: 'The ID is required',
@@ -12,7 +12,7 @@ class Evaluations {
     })
   }
 
-  get getAll() {
+  get getAll(): ValidationChain[] {
     return checkSchema({
       own: {
         in: 'query',
@@ -39,7 +39,7 @@ class Evaluations {
     })
   }
 
-  get create() {
+  get create(): ValidationChain[] {
     return checkSchema({
       userId: {
         errorMessage: 'The userId is required',
@@ -56,7 +56,7 @@ class Evaluations {
     })
   }
 
-  get update() {
+  get update(): ValidationChain[] {
     return checkSchema({
       score: {
         in: 'body',

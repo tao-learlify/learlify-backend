@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express'
 import { ExamsService } from './exams.service'
 import { PackagesService } from 'api/packages/packages.service'
 import { NotFoundException, PaymentException } from 'exceptions'
@@ -7,6 +8,11 @@ import { ModelsService } from 'api/models/models.service'
 import feature from 'api/access/access.features'
 
 class ExamsController {
+  private exams: ExamsService
+  private packages: PackagesService
+  private models: ModelsService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.exams = new ExamsService()
     this.packages = new PackagesService()
@@ -14,35 +20,27 @@ class ExamsController {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getAll(req, res) {
-    const user = req.user
+  async getAll(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
 
-    const model = await this.models.getOne({ name: req.query.model })
+    const model = await this.models.getOne({ name: req.query.model as string })
 
     if (model) {
       const packages = await this.packages.getAll({
         isActive: true,
         userId: user.id,
-        modelId: model.id
+        modelId: (model as unknown as Record<string, unknown>).id as number
       })
 
-      const isAllowedToPresentExams = packages.filter(pack => {
-        return pack.plan.access.find(access => access.feature === feature.EXAMS)
+      const isAllowedToPresentExams = (packages as unknown as Record<string, unknown>[]).filter((pack: Record<string, unknown>) => {
+        return ((pack.plan as Record<string, unknown>).access as Record<string, unknown>[]).find((access: Record<string, unknown>) => access.feature === feature.EXAMS)
       })
 
-      const exams = await this.exams.getAll({ modelId: model.id })
+      const exams = await this.exams.getAll({ modelId: (model as unknown as Record<string, unknown>).id as number })
 
-      /**
-       * @decription
-       * Blocking access to exams
-       */
       if (isAllowedToPresentExams.length === 0) {
-        const blocked = exams.map(exam => {
+        const blocked = (exams as unknown as Record<string, unknown>[]).map((exam: Record<string, unknown>) => {
           if (exam.requiresPayment) {
             return Object.assign(exam, {
               blocked: true
@@ -67,39 +65,33 @@ class ExamsController {
     throw new NotFoundException('Model Not Found')
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Respocvfnse} res
-   */
   @Bind
-  async findOne(req, res) {
-    const user = req.user
+  async findOne(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
 
     const { id } = req.params
 
     const cloudResource = await this.exams.findCloudS3Resource({
-      id
+      id: Number(id)
     })
 
-    const { examModelId, requiresPayment } = await this.exams.getOne({
-      id,
+    const examResult = await this.exams.getOne({
+      id: Number(id),
       withoutGraph: true
-    })
+    }) as unknown as Record<string, unknown>
+
+    const { examModelId, requiresPayment } = examResult
 
     if (cloudResource) {
       if (requiresPayment) {
         const packages = await this.packages.getAll({
           isActive: true,
           userId: user.id,
-          modelId: examModelId
+          modelId: examModelId as number
         })
 
-        /**
-         * @description
-         * Checking that the user can present exams with his access.
-         */
-        const isAllowedToPresentExams = packages.filter(pack =>
-          pack.plan.access.find(access => access.feature === feature.EXAMS)
+        const isAllowedToPresentExams = (packages as unknown as Record<string, unknown>[]).filter((pack: Record<string, unknown>) =>
+          ((pack.plan as Record<string, unknown>).access as Record<string, unknown>[]).find((access: Record<string, unknown>) => access.feature === feature.EXAMS)
         )
 
         if (packages.length > 0 && isAllowedToPresentExams.length > 0) {
@@ -111,7 +103,7 @@ class ExamsController {
         }
 
         throw new PaymentException(
-          res.__('errors.Unsuccessful response due to payment requirements')
+          res.__('errors.Unsuccessful response due to payment requirements') as unknown as { response?: unknown }
         )
       }
 

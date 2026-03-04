@@ -1,13 +1,10 @@
+import type { CourseGetOneQuery } from './courses.types'
 import Advance from 'api/advance/advance.model'
 import { Bind } from 'decorators'
 import Course from './courses.model'
 
 class CoursesService {
-  /**
-   * @param {string} modelName
-   * @param {User} user
-   */
-  async getAll(modelName, user) {
+  async getAll(modelName: string, user: { id: number }) {
     const courses = await Course.query()
       .withGraphJoined('[model(token), views(token)]')
       .where('model.name', modelName)
@@ -17,17 +14,17 @@ class CoursesService {
         .select(['createdAt', 'content', 'id'])
         .where({ userId: user.id, courseId: course.id })
 
-      course.advances = advances
-      
-      delete course.order
-      delete course.modelId
+      ;(course as unknown as Record<string, unknown>).advances = advances
+
+      delete (course as unknown as Record<string, unknown>).order
+      delete (course as unknown as Record<string, unknown>).modelId
     }
 
     return courses
   }
 
   @Bind
-  getOne({ id, ...options }) {
+  getOne({ id, ...options }: CourseGetOneQuery) {
     if (id) {
       return Course.query().findById(id)
     }

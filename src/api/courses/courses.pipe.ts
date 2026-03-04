@@ -1,7 +1,7 @@
-import { checkSchema } from 'express-validator'
+import { checkSchema, type ValidationChain } from 'express-validator'
 
 class Courses {
-  get inscription() {
+  get inscription(): ValidationChain[] {
     return checkSchema({
       courseId: {
         errorMessage: 'courseId is required',
@@ -17,7 +17,8 @@ class Courses {
       }
     })
   }
-  get getAll() {
+
+  get getAll(): ValidationChain[] {
     return checkSchema({
       demo: {
         in: 'query',

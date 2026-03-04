@@ -1,43 +1,36 @@
-import { Model } from 'objection'
+import { Model, type JSONSchema, type RelationMappings, type Modifiers, type QueryBuilder, type ModelClass } from 'objection'
 import Advance from 'api/advance/advance.model'
 import View from 'api/views/views.model'
 import Models from 'api/models/models.model'
 
-
 class Course extends Model {
-  /**
-   * @returns {string}
-   */
-  static get tableName () {
+  id!: number
+  order?: number
+  modelId?: number
+  createdAt?: string
+  advances?: unknown[]
+
+  static get tableName(): string {
     return 'courses'
   }
 
-  /**
-   * @returns {string}
-   */
-  static get idColumn () {
+  static get idColumn(): string {
     return 'id'
   }
 
-  /**
-   * @returns {import('objection').JsonSchema}
-   */
-  static get jsonSchema () {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
       properties: {
         id: { type: 'integer' }
       }
-    } 
+    }
   }
 
-  /**
-   * @returns {import('objection').RelationMappings}
-   */
-  static get relationMappings () {
+  static get relationMappings(): RelationMappings {
     return {
       views: {
-        modelClass: View,
+        modelClass: View as unknown as ModelClass<Model>,
         relation: Model.HasOneRelation,
         join: {
           from: 'courses.id',
@@ -46,7 +39,7 @@ class Course extends Model {
       },
 
       advance: {
-        modelClass: Advance,
+        modelClass: Advance as unknown as ModelClass<Model>,
         relation: Model.HasManyRelation,
         join: {
           from: 'courses.id',
@@ -54,9 +47,8 @@ class Course extends Model {
         }
       },
 
-
       model: {
-        modelClass: Models,
+        modelClass: Models as unknown as ModelClass<Model>,
         relation: Model.HasOneRelation,
         join: {
           from: 'courses.modelId',
@@ -66,14 +58,13 @@ class Course extends Model {
     }
   }
 
-  static get modifiers () {
+  static get modifiers(): Modifiers {
     return {
-      clientAttributes (sql) {
+      clientAttributes(sql: QueryBuilder<Course>) {
         sql.select(['createdAt', 'id'])
       }
     }
   }
 }
-
 
 export default Course

@@ -1,15 +1,18 @@
+import type { CreateAccessInput } from './access.types'
 import { Bind } from 'decorators'
 import Access from './access.model'
 import { Logger } from 'api/logger'
 
 export class AccessService {
+  private logger: typeof Logger.Service
+
   constructor() {
     this.logger = Logger.Service
   }
 
   @Bind
-  create(access) {
-    return Access.query().insertAndFetch(access)
+  create(access: CreateAccessInput) {
+    return Access.query().insertAndFetch(access as unknown as Record<string, unknown>)
   }
 
   @Bind
@@ -18,12 +21,12 @@ export class AccessService {
   }
 
   @Bind
-  getOne(id) {
+  getOne(id: number) {
     return Access.query().findById(id)
   }
 
   @Bind
-  updateOne(id, data) {
+  updateOne(id: number, data: Record<string, unknown>) {
     return Access.query().patchAndFetchById(id, data)
   }
 }

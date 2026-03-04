@@ -1,3 +1,5 @@
+import type { Router as ExpressRouter, RequestHandler } from 'express'
+import type { HttpConsumer } from '@types'
 import { Router } from 'decorators'
 import { Logger } from 'api/logger'
 import { Middleware } from 'middlewares'
@@ -11,12 +13,17 @@ import { Roles } from 'metadata/roles'
   route: '/access'
 })
 class AccessRouter {
+  declare access: ExpressRouter
+  declare consumer: HttpConsumer
+  private controller: AccessController
+  private logger: typeof Logger.Service
+
   constructor() {
     this.controller = new AccessController()
     this.logger = Logger.Service
   }
 
-  httpConsumer() {
+  httpConsumer(): HttpConsumer {
     if (isRunningOnProductionOrDevelopment()) {
       this.logger.info('http: /access')
     }
@@ -28,7 +35,7 @@ class AccessRouter {
         Middleware.RolesGuard([Roles.Admin]),
         pipe.create,
         Middleware.usePipe
-      ],
+      ] as RequestHandler[],
       Middleware.secure(this.controller.create)
     )
 
@@ -39,7 +46,7 @@ class AccessRouter {
         Middleware.RolesGuard([Roles.Admin]),
         pipe.getAll,
         Middleware.usePipe
-      ],
+      ] as RequestHandler[],
       Middleware.secure(this.controller.getAll)
     )
 
@@ -50,7 +57,7 @@ class AccessRouter {
         Middleware.RolesGuard([Roles.Admin]),
         pipe.getOne,
         Middleware.usePipe
-      ],
+      ] as RequestHandler[],
       Middleware.secure(this.controller.getOne)
     )
 
@@ -61,7 +68,7 @@ class AccessRouter {
         Middleware.RolesGuard([Roles.Admin]),
         pipe.updateOne,
         Middleware.usePipe
-      ],
+      ] as RequestHandler[],
       Middleware.secure(this.controller.updateOne)
     )
 

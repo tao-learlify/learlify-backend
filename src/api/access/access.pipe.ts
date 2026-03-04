@@ -1,7 +1,7 @@
-import { checkSchema } from 'express-validator'
+import { checkSchema, type ValidationChain } from 'express-validator'
 
 class Access {
-  get create() {
+  get create(): ValidationChain[] {
     return checkSchema({
       planId: {
         in: 'body',
@@ -15,15 +15,15 @@ class Access {
     })
   }
 
-  get getAll() {
+  get getAll(): ValidationChain[] {
     return checkSchema({})
   }
 
-  get getOne() {
+  get getOne(): ValidationChain[] {
     return checkSchema({})
   }
 
-  get updateOne() {
+  get updateOne(): ValidationChain[] {
     return checkSchema({})
   }
 }

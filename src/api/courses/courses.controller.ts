@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express'
 import { Bind, Injectable } from 'decorators'
 import { AdvanceService } from 'api/advance/advance.service'
 import { UsersService } from 'api/users/users.service'
@@ -16,6 +17,15 @@ import { Logger } from 'api/logger'
 
 @Injectable
 class CoursesController {
+  private aws: AmazonWebServices
+  private advance: AdvanceService
+  private courses: CoursesService
+  private packages: PackagesService
+  private plans: PlansService
+  private users: UsersService
+  private models: ModelsService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.aws = new AmazonWebServices()
 
@@ -34,22 +44,18 @@ class CoursesController {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getAll(req, res) {
-    const query = req.query
+  async getAll(req: Request, res: Response): Promise<Response> {
+    const query = req.query as Record<string, unknown>
 
-    const user = req.user
+    const user = req.user!
 
     const model = await this.models.getOne({
       name: query.model
     })
 
     if (model) {
-      const courses = await this.courses.getAll(model.name, user)
+      const courses = await this.courses.getAll(model.name, user) as unknown as Record<string, unknown>[]
 
       const isSubscribed = await this.packages.getOne({
         access: 'COURSES',
@@ -58,32 +64,22 @@ class CoursesController {
         modelId: model.id
       })
 
-
       const [course] = courses
 
-      /**
-       * @description
-       * If user is having a subscription package, but not advance, that means that user receives and packages from admin.
-       * We already pushing it for no problems.
-       */
-      if (isSubscribed?.isActive && course.advances.length === 0) {
+      if ((isSubscribed as unknown as Record<string, unknown>)?.isActive && (course.advances as unknown[]).length === 0) {
 
-        const content = await this.advance.create({
+        const content = await (this.advance as { create(data: unknown): Promise<unknown> }).create({
           content: {},
-          courseId: course.id,
+          courseId: course.id as number,
           userId: user.id
         })
 
-        course.advances.push(content)
+        ;(course.advances as unknown[]).push(content)
       }
 
-      /**
-       * @description
-       * If user is subscribed, or it's having demo we already connect to the request.
-       */
-      if (isSubscribed || query.demo === true) {  
-        const advance = courses.reduce((pv, cv) => [...pv, ...cv.advances], [])
-    
+      if (isSubscribed || query.demo === true) {
+        const advance = courses.reduce((pv: unknown[], cv) => [...pv, ...(cv.advances as unknown[])], [])
+
         return res.json({
           message: 'Courses Obtained Successfully',
           response: {
@@ -100,13 +96,9 @@ class CoursesController {
     throw new NotFoundException()
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async inscription(req, res) {
-    const { courseId } = req.body
+  async inscription(req: Request, res: Response): Promise<Response> {
+    const { courseId } = req.body as { courseId: number }
 
     const course = await this.courses.getOne({ id: courseId })
 
@@ -119,7 +111,7 @@ class CoursesController {
     }
 
     const advance = await this.advance.getOne({
-      userId: req.user.id,
+      userId: req.user!.id,
       courseId: course.id
     })
 
@@ -127,12 +119,12 @@ class CoursesController {
       throw new ConflictException()
     }
 
-    const ticket = await this.advance.create({
-      userId: req.user.id,
+    const ticket = await (this.advance as { create(data: unknown): Promise<unknown> }).create({
+      userId: req.user!.id,
       courseId: course.id,
       content: {}
     })
-    
+
     this.logger.debug('ticket', ticket)
 
     if (!ticket) {

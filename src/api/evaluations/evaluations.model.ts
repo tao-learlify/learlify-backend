@@ -1,8 +1,4 @@
-import { Model } from 'objection'
-
-/**
- * @requires [models]
- */
+import { Model, type JSONSchema, type RelationMappings, type ModelClass } from 'objection'
 import Progress from 'api/progress/progress.model'
 import User from 'api/users/users.model'
 import Category from 'api/categories/categories.model'
@@ -10,15 +6,25 @@ import Exam from 'api/exams/exams.model'
 import Stats from 'api/stats/stats.model'
 
 class Evaluation extends Model {
-  static get tableName() {
+  id!: number
+  data?: Record<string, unknown>
+  examId?: number
+  userId?: number
+  teacherId?: number | null
+  progressId?: number
+  categoryId?: number
+  comments?: string
+  status?: string
+
+  static get tableName(): string {
     return 'evaluations'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -56,11 +62,11 @@ class Evaluation extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       exam: {
         relation: Model.HasOneRelation,
-        modelClass: Exam,
+        modelClass: Exam as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.examId',
           to: 'exams.id'
@@ -69,7 +75,7 @@ class Evaluation extends Model {
 
       teacher: {
         relation: Model.HasOneRelation,
-        modelClass: User,
+        modelClass: User as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.teacherId',
           to: 'users.id'
@@ -78,7 +84,7 @@ class Evaluation extends Model {
 
       user: {
         relation: Model.HasOneRelation,
-        modelClass: User,
+        modelClass: User as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.userId',
           to: 'users.id'
@@ -87,7 +93,7 @@ class Evaluation extends Model {
 
       category: {
         relation: Model.HasOneRelation,
-        modelClass: Category,
+        modelClass: Category as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.categoryId',
           to: 'category.id'
@@ -96,7 +102,7 @@ class Evaluation extends Model {
 
       progress: {
         relation: Model.HasOneRelation,
-        modelClass: Progress,
+        modelClass: Progress as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.progressId',
           to: 'progress.id'
@@ -105,7 +111,7 @@ class Evaluation extends Model {
 
       stats: {
         relation: Model.HasOneRelation,
-        modelClass: Stats,
+        modelClass: Stats as unknown as ModelClass<Model>,
         join: {
           from: 'evaluations.id',
           to: 'stats.evaluationId'

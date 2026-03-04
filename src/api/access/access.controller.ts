@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express'
+import type { CreateAccessInput, UpdateAccessInput } from './access.types'
 import { Bind } from 'decorators'
 import { AuthenticationService } from 'api/authentication/authentication.service'
 import { AccessService } from './access.service'
@@ -6,6 +8,11 @@ import { RolesService } from 'api/roles/roles.services'
 import { NotFoundException } from 'exceptions'
 
 export class AccessController {
+  private authService: AuthenticationService
+  private configService: ConfigService
+  private rolesService: RolesService
+  private accessService: AccessService
+
   constructor() {
     this.authService = new AuthenticationService()
     this.configService = new ConfigService()
@@ -14,8 +21,8 @@ export class AccessController {
   }
 
   @Bind
-  async create(req, res) {
-    const { planId, feature } = req.body
+  async create(req: Request, res: Response): Promise<void> {
+    const { planId, feature } = req.body as CreateAccessInput
     const access = await this.accessService.create({ planId, feature })
 
     res.status(200).json({
@@ -26,7 +33,7 @@ export class AccessController {
   }
 
   @Bind
-  async getAll(req, res) {
+  async getAll(_req: Request, res: Response): Promise<void> {
     const access = await this.accessService.getAll()
 
     res.status(200).json({
@@ -37,8 +44,8 @@ export class AccessController {
   }
 
   @Bind
-  async getOne(req, res) {
-    const access = await this.accessService.getOne(req.params.id)
+  async getOne(req: Request, res: Response): Promise<void> {
+    const access = await this.accessService.getOne(Number(req.params.id))
 
     if (access) {
       res.status(200).json({
@@ -54,9 +61,9 @@ export class AccessController {
   }
 
   @Bind
-  async updateOne(req, res) {
-    const { id, ...data } = req.body
-    const updated = await this.accessService.updateOne(id, data)
+  async updateOne(req: Request, res: Response): Promise<void> {
+    const { id, ...data } = req.body as UpdateAccessInput
+    const updated = await this.accessService.updateOne(Number(id), data as Record<string, unknown>)
 
     res.status(200).json({
       message: 'Updated succesfully',

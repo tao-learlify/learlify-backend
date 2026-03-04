@@ -1,3 +1,5 @@
+import type { Request, Response } from 'express'
+import type { CreateUserBody, ViewUserInfoQuery } from './admin.types'
 import { AdminService } from './admin.service'
 import { ConfigService } from 'api/config/config.service'
 import { MailService } from 'api/mails/mails.service'
@@ -10,6 +12,15 @@ import { Logger } from 'api/logger'
 import { Bind } from 'decorators'
 
 class AdminController {
+  private adminService: AdminService
+  private authService: AuthenticationService
+  private configService: ConfigService
+  private mailService: MailService
+  private rolesService: RolesService
+  private usersService: UsersService
+  private packagesService: PackagesService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.adminService = new AdminService()
 
@@ -27,13 +38,10 @@ class AdminController {
 
     this.logger = Logger.Service
   }
-  /**
-   * @param {Request} req
-   * @param {Response} res
-   */
+
   @Bind
-  async createUser(req, res) {
-    const data = req.body
+  async createUser(req: Request, res: Response): Promise<Response> {
+    const data = req.body as CreateUserBody
 
     const role = await this.rolesService.findOne({ name: data.role })
 
@@ -53,7 +61,7 @@ class AdminController {
         firstName: data.firstName,
         isVerified: true,
         lastName: data.lastName,
-        password: password.hash,
+        password: password.hash ?? undefined,
         roleId: role.id
       })
 
@@ -91,17 +99,9 @@ class AdminController {
     throw new NotFoundException(res.__('errors.Role Not Found'))
   }
 
-  /**
-   *
-   * @param {Express.Request} req
-   * @param {Express.Response} res
-   */
   @Bind
-  async viewUserInfo(req, res) {
-    /**
-     * @param {string}
-     */
-    const email = req.query.email
+  async viewUserInfo(req: Request, res: Response): Promise<Response> {
+    const email = (req.query as unknown as ViewUserInfoQuery).email
 
     const user = await this.usersService.getOne({
       email

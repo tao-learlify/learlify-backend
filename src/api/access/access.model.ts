@@ -1,12 +1,17 @@
-import { Model } from 'objection'
+import { Model, type JSONSchema, type Modifiers, type QueryBuilder } from 'objection'
 import FEATURES from './access.features'
 
 class Access extends Model {
-  static get tableName() {
+  id!: number
+  planId!: number
+  feature!: string
+  createdAt?: string
+
+  static get tableName(): string {
     return 'access'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -20,9 +25,9 @@ class Access extends Model {
     }
   }
 
-  static get modifiers () {
+  static get modifiers(): Modifiers {
     return {
-      clientAttributes (builder) {
+      clientAttributes(builder: QueryBuilder<Access>) {
         builder.select(['feature', 'createdAt'])
       }
     }

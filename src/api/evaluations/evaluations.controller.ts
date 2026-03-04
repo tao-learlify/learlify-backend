@@ -1,3 +1,4 @@
+import type { Request, Response, NextFunction } from 'express'
 import { Bind, Injectable } from 'decorators'
 import {
   BadRequestException,
@@ -22,9 +23,23 @@ import { createPaginationStack } from 'functions'
 import { StatsFunctions } from 'api/stats/stats.functions'
 import { CloudStorageService } from 'api/cloudstorage/cloudstorage.service'
 import { Models } from 'metadata/models'
+import type { EvaluationComment } from './evaluations.types'
+
 @Injectable
 class EvaluationsController {
-  #comments
+  #comments: EvaluationComment
+
+  private cloudStorage: CloudStorageService
+  private categoriesService: CategoriesService
+  private classesService: ClassesService
+  private examsService: ExamsService
+  private evaluationsService: EvaluationsService
+  private notificationsService: NotificationsService
+  private mailService: MailService
+  private progressService: ProgressService
+  private usersService: UsersService
+  private modelsService: ModelsService
+  declare private logger: Record<string, (...args: unknown[]) => void>
 
   constructor() {
     this.cloudStorage = new CloudStorageService()
@@ -53,100 +68,70 @@ class EvaluationsController {
     }
   }
 
-  /**
-   * @param {Request} req
-   * @param {Response} res
-   */
   @Bind
-  async getOne(req, res) {
+  async getOne(req: Request, res: Response): Promise<Response> {
     const id = req.params.id
 
     const evaluation = await this.evaluationsService.findOne({
-      id
-    })
+      id: Number(id)
+    }) as unknown as Record<string, unknown> | undefined
 
-    /**
-     * @description
-     * Finding The version of the evaluation.
-     */
     if (evaluation?.exam) {
+      const exam = evaluation.exam as Record<string, unknown>
+      const category = evaluation.category as Record<string, unknown>
+      const data = evaluation.data as Record<string, unknown>
+
       const exercises = await this.examsService.findCloudS3Resource(
         {
-          id: evaluation.exam.id
+          id: exam.id as number
         },
-        evaluation.category.name
+        category.name as string
       )
 
-      /**
-       * @description
-       * Finding refs from cloudStorage, to make audio recognized on the client.
-       */
-      if (evaluation.data.cloudStorageRef) {
-        const ids = evaluation.data.cloudStorageRef
+      if (data.cloudStorageRef) {
+        const ids = data.cloudStorageRef as Record<string, Record<string, unknown>>
 
         for (const part in ids) {
           for (const speaking in ids[part]) {
-            const data = await this.cloudStorage.findOne({
+            const cloudData = await this.cloudStorage.findOne({
               id: ids[part][speaking]
             })
 
-            ids[part][speaking] = data
+            ids[part][speaking] = cloudData
           }
         }
       }
-      const model = evaluation?.exam?.model?.name
-      /**
-       * @description
-       * Adding front end required data to filled.
-       */
-      switch (evaluation.category.name) {
+      const model = (exam?.model as Record<string, unknown>)?.name
+      const exercisesResult = exercises as Record<string, unknown>
+
+      switch (category.name) {
         case Categories.Writing:
           if (model === Models.APTIS) {
-            /**
-             * @description
-             * Score from APTIS Speaking is based score array.
-             */
-            evaluation.score = exercises.exercises.map(value =>
-              value.questions.map(() => 0)
+            (evaluation as Record<string, unknown>).score = (exercisesResult.exercises as Record<string, unknown>[]).map((value: Record<string, unknown>) =>
+              (value.questions as unknown[]).map(() => 0)
             )
           }
 
           if (model === Models.IELTS) {
-            /**
-             * @description
-             * Score from IELTS Speaking is based score array.
-             */
-            evaluation.score = exercises.exercises.map(value =>
-              value.questions.map(() => 0)
+            (evaluation as Record<string, unknown>).score = (exercisesResult.exercises as Record<string, unknown>[]).map((value: Record<string, unknown>) =>
+              (value.questions as unknown[]).map(() => 0)
             )
           }
 
-          /**
-           * @description
-           * Creating comments
-           */
-          evaluation.comments = Array(evaluation.data.feedback.length).fill(
+          (evaluation as Record<string, unknown>).comments = Array((data.feedback as unknown[]).length).fill(
             this.#comments
           )
           break
 
         case Categories.Speaking:
-          if (evaluation.exam.model.name === Models.APTIS) {
-            /**
-             * @description
-             * Score from APTIS speaking is based score array.
-             */
-            evaluation.score = evaluation.data.cloudStorageRef.map(value =>
-              [...value].fill(0)
+          if ((exam.model as Record<string, unknown>).name === Models.APTIS) {
+            (evaluation as Record<string, unknown>).score = (data.cloudStorageRef as unknown[]).map((value: unknown) =>
+              [...(value as unknown[])].fill(0)
             )
           }
 
-          if (evaluation.exam.model.name === Models.IELTS) {
-            /**
-             * @description
-             * Score from IELTS Speaking is based score array.
-             */
-            evaluation.score = evaluation.data.cloudStorageRef.map(() => [
+          if ((exam.model as Record<string, unknown>).name === Models.IELTS) {
+            (evaluation as Record<string, unknown>).score = (data.cloudStorageRef as unknown[]).map(() => [
               0,
               0,
               0,
@@ -154,18 +139,14 @@ class EvaluationsController {
             ])
           }
 
-          /**
-           * @description
-           * Creating comments
-           */
-          evaluation.comments = Array(
-            evaluation.data.cloudStorageRef.length
+          (evaluation as Record<string, unknown>).comments = Array(
+            (data.cloudStorageRef as unknown[]).length
           ).fill(this.#comments)
 
           break
 
         default:
-          evaluation.score = []
+          (evaluation as Record<string, unknown>).score = []
           break
       }
 
@@ -173,7 +154,7 @@ class EvaluationsController {
         message: 'Evaluation loaded succesfully',
         response: {
           ...evaluation,
-          ...exercises
+          ...exercisesResult
         },
         statusCode: 200
       })
@@ -190,23 +171,18 @@ class EvaluationsController {
     throw new NotFoundException(res.__('errors.Evaluation Not Found'))
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   * @param {import ('express').NextFunction} next
-   */
   @Bind
-  async getAll(req, res, next) {
-    const page = req.query.page
+  async getAll(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    const page = req.query.page as unknown as number
 
-    const user = req.user
+    const user = req.user!
 
     if (req.query.count) {
       return next()
     }
 
-    if (user.role.name === Roles.User) {
-      const model = await this.modelsService.getOne({ name: req.query.model })
+    if ((user.role as unknown as Record<string, unknown>).name === Roles.User) {
+      const model = await this.modelsService.getOne({ name: req.query.model as string })
 
       if (!model) {
         throw new NotFoundException('Model Not Found')
@@ -214,10 +190,10 @@ class EvaluationsController {
 
       const { results, total } = await this.evaluationsService.getAll({
         userId: user.id,
-        modelId: model.id,
+        modelId: (model as unknown as Record<string, unknown>).id as number,
         page,
         paginationLimit: 4
-      })
+      }) as unknown as { results: unknown[]; total: number }
 
       const paginationStack = {
         total,
@@ -236,9 +212,9 @@ class EvaluationsController {
       if (req.query.user) {
         const { results, total } = await this.evaluationsService.getAll({
           teacherId: user.id,
-          userId: req.query.user,
+          userId: req.query.user as unknown as number,
           page
-        })
+        }) as unknown as { results: unknown[]; total: number }
 
         const paginationStack = {
           total,
@@ -256,7 +232,7 @@ class EvaluationsController {
       const { results, total } = await this.evaluationsService.getAll({
         teacherId: user.id,
         page
-      })
+      }) as unknown as { results: unknown[]; total: number }
 
       const paginationStack = {
         total,
@@ -271,7 +247,7 @@ class EvaluationsController {
       })
     }
 
-    const properties = {
+    const properties: Record<string, unknown> = {
       page
     }
 
@@ -280,7 +256,7 @@ class EvaluationsController {
         userId: req.query.user
       })
 
-    const { results, total } = await this.evaluationsService.getAll(properties)
+    const { results, total } = await this.evaluationsService.getAll(properties as unknown as { page: number }) as unknown as { results: unknown[]; total: number }
 
     const paginationStack = {
       total,
@@ -295,55 +271,42 @@ class EvaluationsController {
     })
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getCount(req, res) {
-    const teacher = req.user
+  async getCount(req: Request, res: Response): Promise<Response> {
+    const teacher = req.user!
 
-    /**
-     * @description
-     * Parallel request, for catching all counts from speakings and writings.
-     */
     const [speaking, writing] = await Promise.all([
       this.categoriesService.getOne({ name: Categories.Speaking }),
       this.categoriesService.getOne({ name: Categories.Writing })
     ])
 
-    /**
-     * @description
-     * Parallel request, for getting data from the count service.
-     */
     const [countSpeaking, countWriting, countClasses] = await Promise.all([
       this.evaluationsService.getAll({
         count: true,
         options: {
           teacherId: teacher.id,
-          categoryId: speaking.id
-        }
+          categoryId: (speaking as unknown as Record<string, unknown>).id
+        },
+        page: 1
       }),
       this.evaluationsService.getAll({
         count: true,
         options: {
           teacherId: teacher.id,
-          categoryId: writing.id
-        }
+          categoryId: (writing as unknown as Record<string, unknown>).id
+        },
+        page: 1
       }),
       this.classesService.getAll({
         count: true,
         options: {
           teacherId: teacher.id
         }
-      })
-    ])
+      } as unknown as Parameters<typeof this.classesService.getAll>[0])
+    ]) as unknown as [Record<string, unknown>[], Record<string, unknown>[], unknown[]]
 
     const initialIndex = 0
 
-    /**
-     * Destructuring assignament.
-     */
     const classes = countClasses.length
 
     const speakings =
@@ -363,38 +326,25 @@ class EvaluationsController {
     })
   }
 
-  /**
-   *
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async updateOne(req, res) {
-    const user = req.user
+  async updateOne(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
 
     const { id } = req.params
 
     const { status, score, comments } = req.body
 
-    /**
-     * @description
-     * If score is presented and it's evaluated we need to following this execution.
-     * We need first get the marking or bandScore.
-     */
     if (score && status === EVALUATED) {
       const evaluation = await this.evaluationsService.findOne({
-        id
-      })
+        id: Number(id)
+      }) as unknown as Record<string, unknown>
 
-      if (evaluation.status === STATUS.EVALUATED) {
+      if ((evaluation as Record<string, unknown>).status === STATUS.EVALUATED) {
         throw new ConflictException('Evaluation is already completed')
       }
-      /**
-       * @description
-       * Checking that comments include his own structure.
-       */
+
       const invalidPatternComment = !comments.every(
-        comment => comment.html && comment.text
+        (comment: Record<string, unknown>) => comment.html && comment.text
       )
 
       if (invalidPatternComment) {
@@ -402,23 +352,20 @@ class EvaluationsController {
       }
 
       if (evaluation) {
-        /**
-         * @description
-         * Getting teacher score.
-         */
-        const stats = StatsFunctions.updateWithTeacherScore(score, {
-          category: evaluation.category,
-          model: evaluation.exam.model
-        })
+        const evaluationCategory = evaluation.category as Record<string, unknown>
+        const evaluationExam = evaluation.exam as Record<string, unknown>
+        const evaluationUser = evaluation.user as Record<string, unknown>
+        const evaluationData = evaluation.data as Record<string, unknown>
 
-        /**
-         * @description
-         * Stats
-         */
+        const stats = StatsFunctions.updateWithTeacherScore(score, {
+          category: evaluationCategory as { name: string },
+          model: evaluationExam.model as { name: string }
+        }) as Record<string, unknown>
+
         const forStats = {
-          categoryId: evaluation.category.id,
-          examId: evaluation.exam.id,
-          userId: evaluation.user.id,
+          categoryId: evaluationCategory.id,
+          examId: evaluationExam.id,
+          userId: evaluationUser.id,
           evaluationId: evaluation.id,
           ...stats
         }
@@ -427,20 +374,16 @@ class EvaluationsController {
 
         this.logger.info('forStats', forStats)
 
-        /**
-         * @description
-         * Updating score and with stats.
-         */
         const update = await this.evaluationsService.patchAndCreateResults(
           {
-            id,
+            id: Number(id),
             data: {
-              ...evaluation.data,
+              ...evaluationData,
               comments
             }
           },
-          forStats
-        )
+          forStats as Record<string, unknown>
+        ) as unknown as Record<string, unknown>
 
         if (update.transactionError) {
           throw new TransactionError('Cannot be updated')
@@ -456,12 +399,8 @@ class EvaluationsController {
       throw new NotFoundException('Evaluation Not Found')
     }
 
-    /**
-     * @description
-     * If STATUS is Taken, that we mean that the field should include teacherId.
-     */
     const evaluation = await this.evaluationsService.update({
-      id,
+      id: Number(id),
       status,
       teacherId: status === TAKEN ? user.id : null
     })
@@ -477,21 +416,17 @@ class EvaluationsController {
     throw new NotFoundException('Evaluation Not Found')
   }
 
-  /**
-   * @param {Express.Request} req
-   * @param {Express.Response} res
-   */
   @Bind
-  async patchOne(req, res) {
+  async patchOne(req: Request, res: Response): Promise<Response> {
     const { id } = req.params
 
     const evaluation = await this.evaluationsService.findOne({
-      id
-    })
+      id: Number(id)
+    }) as unknown as Record<string, unknown> | undefined
 
     if (evaluation && evaluation.status === STATUS.EVALUATED) {
       const evaluation = await this.evaluationsService.update({
-        id,
+        id: Number(id),
         status: STATUS.TAKEN
       })
 

@@ -3,14 +3,17 @@ import { Bind, Injectable } from 'decorators'
 import { AmazonWebServices } from 'api/aws/aws.service'
 import { parseContent } from 'functions'
 
-/**
- * @typedef {Object} Source
- * @property {number} id
- */
-
 @Injectable
 class ExamsService {
-  #relation
+  #relation: {
+    getOne: {
+      graph: string
+      foreignKey: string
+    }
+  }
+
+  private aws: AmazonWebServices
+  private clientAttributes: string[]
 
   constructor() {
     this.aws = new AmazonWebServices()
@@ -33,12 +36,8 @@ class ExamsService {
     ]
   }
 
-  /**
-   * @param {{ name: string, id: number }} data
-   * @param {string} category
-   */
   @Bind
-  async findCloudS3Resource(data, category) {
+  async findCloudS3Resource(data: { name?: string; id?: number }, category?: string) {
     const exam = await Exam.query()
       .findOne(data)
       .select(['id', 'dir', 'name', 'version'])
@@ -49,15 +48,15 @@ class ExamsService {
       })
 
     const body = await this.aws.getObjectBody({
-      Bucket: process.env.AWS_BUCKET,
-      Key: `${Exam.tableName}/${exam.version}/${exam.dir}`
+      Bucket: process.env.AWS_BUCKET as string,
+      Key: `${Exam.tableName}/${(exam as unknown as Record<string, unknown>).version}/${(exam as unknown as Record<string, unknown>).dir}`
     })
 
     if (category && body) {
       const { exercises } = parseContent({
         data: body.toString(),
         key: decodeURIComponent(category)
-      })
+      } as unknown as Parameters<typeof parseContent>[0])
 
       return {
         exam,
@@ -72,11 +71,8 @@ class ExamsService {
     }
   }
 
-  /**
-   * @param {{ modelId?: number | string }}
-   */
   @Bind
-  async getAll({ getIds, modelId }) {
+  async getAll({ getIds, modelId }: { getIds?: boolean; modelId?: number | string }) {
     const { clientAttributes } = this
 
     if (getIds) {
@@ -94,11 +90,8 @@ class ExamsService {
       .withGraphFetched({ model: true })
   }
 
-  /**
-   * @param {Source} exam
-   */
   @Bind
-  getOne({ withoutGraph, id, ...exam }) {
+  getOne({ withoutGraph, id, ...exam }: { withoutGraph?: boolean; id?: number; user?: number; [key: string]: unknown }) {
     const { getOne } = this.#relation
 
     if (withoutGraph) {
@@ -109,10 +102,6 @@ class ExamsService {
     }
 
     if (id) {
-      /**
-       * @description
-       * Getting the exam
-       */
       return Exam.query()
         .findById(id)
         .select(this.clientAttributes)
@@ -120,7 +109,7 @@ class ExamsService {
         .withGraphFetched({ model: true })
         .modifiers({
           owner(builder) {
-            builder.select('*').where({ userId: exam.user })
+            builder.select('*').where({ userId: (exam as Record<string, unknown>).user })
           }
         })
     }
