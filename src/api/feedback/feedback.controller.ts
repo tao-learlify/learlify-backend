@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express'
 import { Bind } from 'decorators'
 import { AmazonWebServices } from 'api/aws/aws.service'
 import { ProgressService } from 'api/progress/progress.service'
@@ -15,8 +16,19 @@ import { Logger } from 'api/logger'
 import { Categories } from 'metadata/categories'
 import { Models } from 'metadata/models'
 import feature from 'api/access/access.features'
+import type { FeedbackGetOneQuery } from './feedback.types'
 
 class FeedbackController {
+  private categoriesService: CategoriesService
+  private cloudStorageService: CloudStorageService
+  private evaluationsService: EvaluationsService
+  private modelsService: ModelsService
+  private progressService: ProgressService
+  private statsService: StatsService
+  private packagesService: PackagesService
+  private aws: AmazonWebServices
+  private logger: typeof Logger.Service
+
   constructor() {
     this.categoriesService = new CategoriesService()
     this.cloudStorageService = new CloudStorageService()
@@ -29,39 +41,27 @@ class FeedbackController {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getOne(req, res) {
-    const { categoryId, examId, model: name, ignore } = req.query
+  async getOne(req: Request, res: Response): Promise<Response> {
+    const { categoryId, examId, model: name, ignore } = req.query as unknown as FeedbackGetOneQuery
 
-    const user = req.user
+    const user = req.user!
 
-    /**
-     * @description
-     * Finding progress first.
-     */
     const progress = await this.progressService.getOne({
       examId,
       userId: user.id
-    })
+    } as unknown as Parameters<typeof this.progressService.getOne>[0])
 
-    /**
-     * @description
-     * If progress exist we search for progress.
-     */
     if (progress) {
-      const { dir } = progress.exam
+      const { dir } = (progress as unknown as Record<string, unknown>).exam as Record<string, unknown>
 
       const body = await this.aws.getObjectBody({
         Bucket: process.env.AWS_BUCKET,
-        Key: cloudfrontURL(dir)
+        Key: cloudfrontURL(dir as string)
       })
 
       const category = await this.categoriesService.getOne({
-        id: categoryId
+        id: categoryId as unknown as string
       })
 
       const model = await this.modelsService.getOne({
@@ -73,42 +73,42 @@ class FeedbackController {
           {
             isActive: true,
             userId: user.id,
-            modelId: model.id
+            modelId: (model as unknown as Record<string, unknown>).id as number
           },
           [feature.EXAMS, feature.EVALUATIONS]
         )
 
-        const { data } = progress
+        const { data } = progress as unknown as Record<string, unknown>
 
         const { exercises } = parseContent({
-          data: body.toString(),
-          key: category.name
-        })
+          data: (body as unknown as Record<string, unknown>).toString() as unknown as JSON,
+          key: (category as unknown as Record<string, unknown>).name as string
+        } as unknown as Parameters<typeof parseContent>[0])
 
-        const ref = data[category.name]
+        const ref = (data as Record<string, unknown>)[(category as unknown as Record<string, unknown>).name as string] as Record<string, unknown>
 
         ignore && Object.assign(ref, { completed: true })
 
         const isContextEvaluation =
-          category.name === Categories.Speaking ||
-          category.name === Categories.Writing
+          (category as unknown as Record<string, unknown>).name === Categories.Speaking ||
+          (category as unknown as Record<string, unknown>).name === Categories.Writing
 
         if (isContextEvaluation && ref.completed) {
           if (isSubscribed === false) {
             throw new PaymentException()
           }
 
-          const cloudStorageRef = ref.cloudStorageRef
+          const cloudStorageRef = ref.cloudStorageRef as unknown[] | undefined
 
           if (cloudStorageRef) {
-            const flattenCloudStorage = cloudStorageRef.flat().map(ref => {
+            const flattenCloudStorage = (cloudStorageRef as unknown[][]).flat().map((ref: unknown) => {
               return this.cloudStorageService.findOne({
-                id: ref
+                id: ref as number
               })
             })
 
             const evaluation = await this.evaluationsService.findOne({
-              categoryId: category.id,
+              categoryId: (category as unknown as Record<string, unknown>).id as number,
               examId: examId,
               userId: user.id,
               early: true
@@ -120,11 +120,11 @@ class FeedbackController {
 
             return res.json({
               response: {
-                id: progress.id,
+                id: (progress as unknown as Record<string, unknown>).id,
                 cloudStorage,
                 exercises,
                 progress: {
-                  ...data[category.name]
+                  ...(data as Record<string, unknown>)[(category as unknown as Record<string, unknown>).name as string] as Record<string, unknown>
                 },
                 evaluation
               },
@@ -133,7 +133,7 @@ class FeedbackController {
           }
 
           const evaluation = await this.evaluationsService.findOne({
-            categoryId: category.id,
+            categoryId: (category as unknown as Record<string, unknown>).id as number,
             examId: examId,
             userId: user.id,
             early: true
@@ -141,10 +141,10 @@ class FeedbackController {
 
           return res.json({
             response: {
-              id: progress.id,
+              id: (progress as unknown as Record<string, unknown>).id,
               exercises,
               progress: {
-                ...data[category.name]
+                ...(data as Record<string, unknown>)[(category as unknown as Record<string, unknown>).name as string] as Record<string, unknown>
               },
               evaluation
             },
@@ -159,7 +159,7 @@ class FeedbackController {
             {
               isActive: true,
               userId: user.id,
-              modelId: model.id
+              modelId: (model as unknown as Record<string, unknown>).id as number
             },
             [feature.EXAMS]
           )
@@ -170,16 +170,16 @@ class FeedbackController {
 
           const stats = await this.statsService.getOne({
             userId: user.id,
-            categoryId: category.id,
-            examId: progress.exam.id
-          })
+            categoryId: (category as unknown as Record<string, unknown>).id as number,
+            examId: (progress as unknown as Record<string, unknown>).exam as number
+          }) as unknown as Record<string, unknown>
 
-          const { exam } = stats
+          const { exam } = stats as { exam?: { model?: { name: string } } }
 
           if (exam?.model?.name) {
             switch (exam.model.name) {
               case Models.APTIS:
-                if (category.name === Categories.Core) {
+                if ((category as unknown as Record<string, unknown>).name === Categories.Core) {
                   Object.assign(stats, { total: 50 })
                 } else {
                   Object.assign(stats, { total: 25 })
@@ -199,10 +199,10 @@ class FeedbackController {
 
           return res.json({
             response: {
-              id: progress.id,
+              id: (progress as unknown as Record<string, unknown>).id,
               exercises,
               progress: {
-                ...data[category.name]
+                ...(data as Record<string, unknown>)[(category as unknown as Record<string, unknown>).name as string] as Record<string, unknown>
               },
               stats
             },

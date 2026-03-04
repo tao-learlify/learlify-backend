@@ -1,7 +1,8 @@
 import { checkSchema } from 'express-validator'
- 
+import type { ValidationChain } from 'express-validator'
+
 class Feedback {
-  get getOne () {
+  get getOne(): ValidationChain[] {
     return checkSchema({
       categoryId: {
         in: 'query',
@@ -24,7 +25,7 @@ class Feedback {
         in: 'query',
         isBoolean: true
       }
-    })
+    }) as unknown as ValidationChain[]
   }
 }
 
