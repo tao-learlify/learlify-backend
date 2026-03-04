@@ -73,7 +73,8 @@ export class AuthenticationController {
     })
 
     const confirmationCode = this.authService.encrypt(
-      { email: data.email },
+      { email: data!.email },
+
       {
         encryptOptions: {
           expiresIn: '1d'
@@ -439,9 +440,9 @@ export class AuthenticationController {
     })
 
     if (available) {
-      const user = await this.userService.getOne({
+      const user = (await this.userService.getOne({
         email
-      })
+      }))!
 
       const token = this.authService.encrypt(
         { email: user.email, id: user.id },
@@ -561,10 +562,10 @@ export class AuthenticationController {
 
   @Bind
   async demoUser(req: Request, res: Response): Promise<Response> {
-    const user = await this.userService.getOne({
+    const user = (await this.userService.getOne({
       allowPrivateData: true,
       email: 'aptisgo@noreply'
-    })
+    }))!
 
     await this.userService.updateOne({
       id: user.id,

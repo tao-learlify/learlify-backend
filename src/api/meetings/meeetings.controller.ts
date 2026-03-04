@@ -98,7 +98,7 @@ export class MeetingsController {
     if ((classRoom as unknown as Record<string, Record<string, unknown>>).schedule?.streaming) {
       return res.status(200).json({
         response: this.authService.encrypt({
-          ...user as Record<string, unknown>
+          ...user as unknown as Record<string, unknown>
         }),
         statusCode: 200
       })

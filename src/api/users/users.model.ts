@@ -1,4 +1,5 @@
 import { Model } from 'objection'
+import type { JSONSchema, RelationMappings, Modifiers, QueryBuilder, ModelClass } from 'objection'
 
 import Role from 'api/roles/roles.model'
 import Package from 'api/packages/packages.model'
@@ -11,21 +12,36 @@ import Evaluation from 'api/evaluations/evaluations.model'
 import Meeting from 'api/meetings/meetings.model'
 import Models from 'api/models/models.model'
 
-/**
- * User Model
- * @class User
- * @extends {Model}
- */
 class User extends Model {
-  static get tableName() {
+  id!: number
+  email?: string
+  password?: string
+  firstName?: string
+  lastName?: string
+  roleId?: number
+  modelId?: number
+  imageUrl?: string
+  isVerified?: boolean
+  lang?: string
+  lastLogin?: string
+  stripeCustomerId?: string
+  googleId?: string
+  facebookId?: string
+  tour?: string
+  createdAt?: string
+  updatedAt?: string
+  role?: Record<string, unknown>
+  model?: Record<string, unknown>
+
+  static get tableName(): string {
     return 'users'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -43,11 +59,11 @@ class User extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       model: {
         relation: Model.HasOneRelation,
-        modelClass: Models,
+        modelClass: Models as unknown as ModelClass<Model>,
         join: {
           from: 'users.modelId',
           to: 'exam_models.id'
@@ -56,7 +72,7 @@ class User extends Model {
 
       roles: {
         relation: Model.HasOneRelation,
-        modelClass: Role,
+        modelClass: Role as unknown as ModelClass<Model>,
         join: {
           from: 'users.roleId',
           to: 'roles.id'
@@ -65,7 +81,7 @@ class User extends Model {
 
       progress: {
         relation: Model.HasManyRelation,
-        modelClass: Progress,
+        modelClass: Progress as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'progress.userId'
@@ -74,7 +90,7 @@ class User extends Model {
 
       packages: {
         relation: Model.HasManyRelation,
-        modelClass: Package,
+        modelClass: Package as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'packages.userId'
@@ -83,7 +99,7 @@ class User extends Model {
 
       evaluations: {
         relation: Model.HasManyRelation,
-        modelClass: Evaluation,
+        modelClass: Evaluation as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'evaluations.userId'
@@ -92,7 +108,7 @@ class User extends Model {
 
       cloudstorage: {
         relation: Model.HasManyRelation,
-        modelClass: CloudStorage,
+        modelClass: CloudStorage as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'cloudstorage.userId'
@@ -101,7 +117,7 @@ class User extends Model {
 
       stats: {
         relation: Model.HasManyRelation,
-        modelClass: Stats,
+        modelClass: Stats as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'stats.userId'
@@ -110,7 +126,7 @@ class User extends Model {
 
       gifts: {
         relation: Model.HasOneRelation,
-        modelClass: Gift,
+        modelClass: Gift as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'gifts.gifter'
@@ -119,7 +135,7 @@ class User extends Model {
 
       schedules: {
         relation: Model.HasManyRelation,
-        modelClass: Schedule,
+        modelClass: Schedule as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'schedule.userId'
@@ -128,7 +144,7 @@ class User extends Model {
 
       meetings: {
         relation: Model.HasManyRelation,
-        modelClass: Meeting,
+        modelClass: Meeting as unknown as ModelClass<Model>,
         join: {
           from: 'users.id',
           to: 'meetings.userId'
@@ -137,16 +153,13 @@ class User extends Model {
     }
   }
 
-  /**
-   * @returns {import ('objection').Modifiers}
-   */
-  static get modifiers() {
+  static get modifiers(): Modifiers {
     return {
-      withName(builder) {
+      withName(builder: QueryBuilder<User>) {
         return builder.select(['id', 'email', 'firstName', 'lastName', 'lang'])
       },
 
-      evaluation(builder) {
+      evaluation(builder: QueryBuilder<User>) {
         return builder.select(['id', 'firstName', 'lastName'])
       }
     }

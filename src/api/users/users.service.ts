@@ -10,20 +10,15 @@ import { transaction } from 'objection'
 
 import moment from 'moment'
 import knex from 'config/db'
-
-/**
- * @typedef {Object} Source
- * @property {number} id
- * @property {string} email
- * @property {string} firstName
- * @property {string} lastName
- * @property {string} imageUrl
- * @property {boolean} isVerified
- * @property {number} roleId
- * @property {number} page
- */
+import type { UserRelationshipConfig, UserGetAllParams, UserGetOneParams } from './users.types'
 
 export class UsersService {
+  private configService: ConfigService
+  private rolesService: RolesService
+  private logger: typeof Logger.Service
+  private relationShip: UserRelationshipConfig
+  private clientAttributes: string[]
+
   constructor() {
     this.configService = new ConfigService()
     this.rolesService = new RolesService()
@@ -63,22 +58,13 @@ export class UsersService {
     this.isAvailable = this.isAvailable.bind(this)
   }
 
-  /**
-   * @param {Source} user
-   * @returns {Promise<User>}
-   */
-  create(user) {
+  create(user: Record<string, unknown>) {
     const { getOne } = this.relationShip
 
     return User.query().insertAndFetch(user).withGraphFetched(getOne)
   }
 
-  /**
-   * @param {Source} users
-   * @param {string | null} query
-   * @returns {Promise<User []>}
-   */
-  getAll({ page, limit: withLimit, ...options }, query) {
+  getAll({ page, limit: withLimit, ...options }: UserGetAllParams, query?: string | null) {
     const { getAll } = this.relationShip
 
     const limit = withLimit
@@ -110,11 +96,7 @@ export class UsersService {
       .withGraphFetched(getAll)
   }
 
-  /**
-   * @param {Source} user
-   * @returns {Promise<User>}
-   */
-  getOne({ id, allowPrivateData, identity, ...options }) {
+  getOne({ id, allowPrivateData, identity, ...options }: UserGetOneParams) {
     const { getOne } = this.relationShip
 
     const clientAttributes = allowPrivateData
@@ -138,20 +120,11 @@ export class UsersService {
       .withGraphFetched(getOne)
   }
 
-  /**
-   *
-   * @param {Source} user
-   * @returns {Promise<Boolean>}
-   */
-  isAvailable({ email }) {
+  isAvailable({ email }: { email: string }) {
     return User.query().findOne({ email }).select(['email'])
   }
 
-  /**
-   * @param {Source} user
-   * @returns {Promise<User>}
-   */
-  updateOne({ id, ...data }) {
+  updateOne({ id, ...data }: { id?: number; [key: string]: unknown }) {
     const { getOne } = this.relationShip
 
     if (id) {
@@ -167,10 +140,7 @@ export class UsersService {
       .withGraphFetched(getOne)
   }
 
-  /**
-   * @returns {Promise<Number>}
-   */
-  async deleteInactive() {
+  async deleteInactive(): Promise<number> {
     const threeMonthsAgo = moment().subtract(3, 'month').format('YYYY-MM-DD')
     const role = await this.rolesService.findOne({ name: Roles.User })
 
@@ -187,53 +157,53 @@ export class UsersService {
           DeletedUser,
           CloudStorage,
           DeletedCloudStorage,
-          async (User, DeletedUser, CloudStorage, DeletedCloudStorage) => {
-            const deletedUser = await DeletedUser.query().findOne({
+          async (BoundUser, BoundDeletedUser, BoundCloudStorage, BoundDeletedCloudStorage) => {
+            const deletedUser = await BoundDeletedUser.query().findOne({
               email: user.email
             })
 
             if (deletedUser) {
-              await DeletedUser.query().patchAndFetchById(deletedUser.id, {
-                userId: Math.min(user.id, deletedUser.userId),
+              await BoundDeletedUser.query().patchAndFetchById(deletedUser.id, {
+                userId: Math.min(user.id, (deletedUser as unknown as Record<string, number>).userId),
                 firstName: user.firstName,
                 lastName: user.lastName,
                 updatedAt: knex.fn.now()
-              })
+              } as unknown as Record<string, unknown>)
 
-              const cloudstorage = await CloudStorage.query().where({
+              const cloudstorage = await BoundCloudStorage.query().where({
                 userId: user.id
               })
 
               for (const speaking of cloudstorage) {
-                await DeletedCloudStorage.query().insert(speaking)
+                await BoundDeletedCloudStorage.query().insert(speaking as unknown as Record<string, unknown>)
               }
 
-              await User.query().deleteById(user.id)
+              await BoundUser.query().deleteById(user.id)
               return
             }
 
-            await DeletedUser.query().insert({
+            await BoundDeletedUser.query().insert({
               userId: user.id,
               email: user.email,
               firstName: user.firstName,
               lastName: user.lastName
-            })
+            } as unknown as Record<string, unknown>)
 
-            const cloudstorage = await CloudStorage.query().where({
+            const cloudstorage = await BoundCloudStorage.query().where({
               userId: user.id
             })
 
             for (const speaking of cloudstorage) {
-              await DeletedCloudStorage.query().insert(speaking)
+              await BoundDeletedCloudStorage.query().insert(speaking as unknown as Record<string, unknown>)
             }
 
-            await User.query().deleteById(user.id)
+            await BoundUser.query().deleteById(user.id)
           }
         )
         total++
       } catch (error) {
-        this.logger.error(error.name)
-        this.logger.error(error.stack)
+        this.logger.error((error as Error).name)
+        this.logger.error((error as Error).stack)
         continue
       }
     }
@@ -241,27 +211,17 @@ export class UsersService {
     return total
   }
 
-  /**
-   * @returns {Promise<Number>}
-   */
   async verifyUnverified() {
     return User.query()
       .patch({ isVerified: true })
       .where('isVerified', '=', false)
   }
 
-  /**
-   * @param {string | number}
-   */
-  async getUserTour({ id }) {
+  async getUserTour({ id }: { id: number }) {
     return User.query().select(['tour']).findById(id)
   }
 
-  /**
-   * @param {string | number} id
-   * @returns {Promise<Number>} Affected rows
-   */
-  updateLastLogin(id) {
+  updateLastLogin(id: number) {
     return User.query()
       .findById(id)
       .patch({

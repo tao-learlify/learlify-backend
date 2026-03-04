@@ -107,8 +107,8 @@ class AdminController {
       email
     })
 
-    delete user.stripeCustomerId
-    delete user.role
+    delete user!.stripeCustomerId
+    delete user!.role
 
     if (user) {
       const count = await this.packagesService.getWritingsAndSpeakings({

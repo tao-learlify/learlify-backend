@@ -1,12 +1,15 @@
 import { checkSchema } from 'express-validator'
+import type { ValidationChain } from 'express-validator'
 import { ConfigService } from 'api/config/config.service'
 
 class Users {
+  private configService: ConfigService
+
   constructor() {
     this.configService = new ConfigService()
   }
 
-  get getAll() {
+  get getAll(): ValidationChain[] {
     return checkSchema({
       role: {
         in: 'query',
@@ -30,7 +33,7 @@ class Users {
     })
   }
 
-  get getOne() {
+  get getOne(): ValidationChain[] {
     return checkSchema({
       id: {
         in: 'params',
@@ -40,7 +43,7 @@ class Users {
     })
   }
 
-  get updateOne() {
+  get updateOne(): ValidationChain[] {
     const { nameOptions, passwordOptions } = this.configService
 
     return checkSchema({
@@ -49,15 +52,15 @@ class Users {
       },
       firstName: {
         isString: true,
-        isLength: nameOptions
+        isLength: { options: nameOptions }
       },
       lastName: {
         isString: true,
-        isLength: nameOptions
+        isLength: { options: nameOptions }
       },
       password: {
         isString: true,
-        isLength: passwordOptions,
+        isLength: { options: passwordOptions },
         optional: true
       },
       modelId: {
@@ -68,7 +71,7 @@ class Users {
     })
   }
 
-  get updateTour() {
+  get updateTour(): ValidationChain[] {
     return checkSchema({
       draft: {
         in: 'body',

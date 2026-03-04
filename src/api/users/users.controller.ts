@@ -6,8 +6,15 @@ import { ConfigService } from 'api/config/config.service'
 import { RolesService } from 'api/roles/roles.services'
 import { NotFoundException } from 'exceptions'
 import { createPaginationStack } from 'functions'
+import type { Request, Response, NextFunction } from 'express'
 
 class UsersController {
+  private authService: AuthenticationService
+  private configService: ConfigService
+  private rolesService: RolesService
+  private usersService: UsersService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.authService = new AuthenticationService()
     this.configService = new ConfigService()
@@ -16,30 +23,26 @@ class UsersController {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getAll(req, res) {
+  async getAll(req: Request, res: Response): Promise<Response> {
     const { search, page, limit } = req.query
 
-    const role = await this.rolesService.findOne({ name: req.query.role })
+    const role = await this.rolesService.findOne({ name: req.query.role as string })
 
     if (role) {
       const users = await this.usersService.getAll(
-        { page, limit, roleId: role.id },
-        search
+        { page, limit, roleId: role.id } as unknown as Parameters<typeof this.usersService.getAll>[0],
+        search as string
       )
 
       return res.status(200).json({
         message: 'Users obtained succesfully',
-        response: users.results,
+        response: (users as unknown as Record<string, unknown>).results,
         pagination: createPaginationStack({
           limit: this.configService.provider.PAGINATION_LIMIT,
           page: page,
-          total: users.total
-        }),
+          total: (users as unknown as Record<string, unknown>).total
+        } as unknown as Parameters<typeof createPaginationStack>[0]),
         statusCode: 200
       })
     }
@@ -47,54 +50,44 @@ class UsersController {
     throw new NotFoundException(res.__('errors.Role Not Found'))
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getOne(req, res, next) {
+  async getOne(req: Request, res: Response, next: NextFunction): Promise<void> {
     if (req.query.tour) {
       return next()
     }
 
     const id = req.params.id
 
-    const user = await this.usersService.getOne({ id })
+    const user = await this.usersService.getOne({ id } as unknown as Parameters<typeof this.usersService.getOne>[0])
 
     if (user) {
-      return res.status(200).json({
+      res.status(200).json({
         message: 'User obtained successfully',
         response: user,
         statusCode: 200
       })
+      return
     }
 
     throw new NotFoundException(res.__('errors.User Not Found'))
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async updateOne(req, res) {
-    /**
-     * @type {{ email: string, firstName: string, lastName: string, password?: string }}
-     */
+  async updateOne(req: Request, res: Response): Promise<Response> {
     const { email, ...data } = req.body
 
     this.logger.info('email', { email })
 
-    const user = req.user
+    const user = req.user!
 
     const available = await this.usersService.isAvailable({
       email: user.email
     })
 
     if (available) {
-      data.password &&
+      (data as Record<string, unknown>).password &&
         Object.assign(data, {
-          password: await this.authService.hash(data.password)
+          password: await this.authService.hash((data as Record<string, unknown>).password as string)
         })
 
       const update = await this.usersService.updateOne({
@@ -103,7 +96,7 @@ class UsersController {
       })
 
       const token = this.authService.encrypt(
-        { ...update, role: update.role },
+        { ...(update as unknown as Record<string, unknown>), role: (update as unknown as Record<string, unknown>).role },
         { clientConfig: true }
       )
 
@@ -119,21 +112,17 @@ class UsersController {
     throw new NotFoundException(res.__('errors.User Not Found'))
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async updateTour(req, res) {
+  async updateTour(req: Request, res: Response): Promise<Response> {
     const { draft } = req.body
 
-    const { id } = req.user
+    const { id } = req.user!
 
     const data = await this.usersService.getUserTour({ id })
 
-    const tour = JSON.parse(data.tour)
+    const tour = JSON.parse((data as unknown as Record<string, string>).tour)
 
-    tour[draft] = true
+    tour[draft as string] = true
 
     await this.usersService.updateOne({
       id,
@@ -148,18 +137,14 @@ class UsersController {
     })
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getTour(req, res) {
-    const { id } = req.user
+  async getTour(req: Request, res: Response): Promise<Response> {
+    const { id } = req.user!
 
-    const { tour } = await this.usersService.getUserTour({ id })
+    const result = await this.usersService.getUserTour({ id })
 
     return res.status(200).json({
-      response: JSON.parse(tour),
+      response: JSON.parse((result as unknown as Record<string, string>).tour),
       statusCode: 200
     })
   }
