@@ -1,3 +1,5 @@
+import type { Router as ExpressRouter, RequestHandler } from 'express'
+import type { HttpConsumer } from '@types'
 import { Router } from 'decorators'
 import { Logger } from 'api/logger'
 import { Middleware } from 'middlewares'
@@ -11,26 +13,31 @@ import { OWNER } from 'metadata/owners'
   route: '/latest'
 })
 class LatestEvaluationsRouter {
+  declare latest: ExpressRouter
+  declare consumer: HttpConsumer
+  private controller: LatestEvaluationsController
+  private logger: typeof Logger.Service
+
   constructor() {
     this.controller = new LatestEvaluationsController()
     this.logger = Logger.Service
   }
 
-  httpConsumer() {
+  httpConsumer(): HttpConsumer {
     if (isRunningOnProductionOrDevelopment()) {
       this.logger.info('http: /latest')
     }
 
     this.latest.get(
       '/all',
-      [Middleware.authenticate, pipe.getAll, Middleware.usePipe],
-      Middleware.secure(this.controller.getAll)
+      [Middleware.authenticate, pipe.getAll, Middleware.usePipe] as RequestHandler[],
+      Middleware.secure(this.controller.getAll) as RequestHandler
     )
 
     this.latest.get(
       '/count',
-      [Middleware.authenticate],
-      Middleware.secure(this.controller.getCount)
+      [Middleware.authenticate] as RequestHandler[],
+      Middleware.secure(this.controller.getCount) as RequestHandler
     )
 
     this.latest.get(
@@ -40,8 +47,8 @@ class LatestEvaluationsRouter {
         pipe.getOne,
         Middleware.usePipe,
         Middleware.isResourceOwner({ context: OWNER.LATEST })
-      ],
-      Middleware.secure(this.controller.getOne)
+      ] as RequestHandler[],
+      Middleware.secure(this.controller.getOne) as RequestHandler
     )
 
     return this.consumer

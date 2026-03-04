@@ -3,12 +3,18 @@ import STATUS from 'api/evaluations/evaluations.status'
 import { ConfigService } from 'api/config/config.service'
 import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
-
-const relationShip = Symbol('relationShip')
+import type { LatestEvaluationGetAllParams, LatestEvaluationCountParams } from './latestEvaluations.types'
 
 export class LatestEvaluationsService {
+  #relation: {
+    getOne: { relationShip: string }
+    getAll: { relationShip: Record<string, unknown> }
+  }
+  private configService: ConfigService
+  private logger: typeof Logger.Service
+
   constructor() {
-    this[relationShip] = {
+    this.#relation = {
       getOne: {
         relationShip: '[user(withName), teacher(withName), category, results]'
       },
@@ -28,40 +34,32 @@ export class LatestEvaluationsService {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {Source} evaluation
-   * @returns {Promise<Evaluation []>}
-   */
   @Bind
-  getAll({ page, limit, ...evaluation }) {
-    const { getAll } = this[relationShip]
+  getAll({ page, limit, ...evaluation }: LatestEvaluationGetAllParams) {
+    const { getAll } = this.#relation
 
     return LatestEvaluation.query()
       .withGraphFetched(getAll.relationShip)
-      .page(page - 1, limit || this.configService.provider.PAGINATION_LIMIT)
+      .page(page - 1, limit || (this.configService as unknown as Record<string, Record<string, unknown>>).provider.PAGINATION_LIMIT as number)
       .where(evaluation)
       .andWhere({ status: STATUS.EVALUATED })
       .orderBy('createdAt', 'desc')
   }
 
-  /**
-   * @param {Source} evaluation
-   * @returns {Promise<Evaluation>}
-   */
   @Bind
-  getOne(id) {
-    const { getAll } = this[relationShip]
+  getOne(id: number) {
+    const { getAll } = this.#relation
 
     return LatestEvaluation.query()
       .findById(id)
       .withGraphFetched(getAll.relationShip)
   }
 
-  async count(options) {
+  async count(options: LatestEvaluationCountParams): Promise<number> {
     const { total } = await LatestEvaluation.query()
       .count('* as total')
       .where(options)
-      .first()
+      .first() as unknown as { total: number }
     return total
   }
 }

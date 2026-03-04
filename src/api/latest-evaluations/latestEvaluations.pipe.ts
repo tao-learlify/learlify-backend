@@ -1,7 +1,8 @@
 import { checkSchema } from 'express-validator'
+import type { ValidationChain } from 'express-validator'
 
 class LatestEvaluations {
-  get getOne() {
+  get getOne(): ValidationChain[] {
     return checkSchema({
       id: {
         errorMessage: 'The ID is required',
@@ -9,10 +10,10 @@ class LatestEvaluations {
         isInt: true,
         toInt: true
       }
-    })
+    }) as unknown as ValidationChain[]
   }
 
-  get getAll() {
+  get getAll(): ValidationChain[] {
     return checkSchema({
       own: {
         in: 'query',
@@ -25,7 +26,7 @@ class LatestEvaluations {
         isInt: true,
         toInt: true
       }
-    })
+    }) as unknown as ValidationChain[]
   }
 }
 

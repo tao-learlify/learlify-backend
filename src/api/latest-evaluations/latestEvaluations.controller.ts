@@ -1,3 +1,4 @@
+import type { Request, Response } from 'express'
 import { Bind, Injectable } from 'decorators'
 import { NotFoundException } from 'exceptions'
 import { CategoriesService } from 'api/categories/categories.service'
@@ -12,7 +13,16 @@ import { createPaginationStack } from 'functions'
 
 @Injectable
 class LatestEvaluationsController {
-  #limit
+  #limit: number
+
+  private evaluationsService: LatestEvaluationsService
+  private categoriesService: CategoriesService
+  private usersService: UsersService
+  private classesService: ClassesService
+  private progressService: ProgressService
+  private mailService: MailService
+  declare private logger: unknown
+  declare private config: unknown
 
   constructor() {
     this.evaluationsService = new LatestEvaluationsService()
@@ -24,14 +34,10 @@ class LatestEvaluationsController {
     this.#limit = 4
   }
 
-  /**
-   * @param {Request} req
-   * @param {Response} res
-   */
   @Bind
-  async getOne(req, res) {
+  async getOne(req: Request, res: Response): Promise<void> {
     const id = req.params.id
-    const evaluation = await this.evaluationsService.getOne(id)
+    const evaluation = await this.evaluationsService.getOne(Number(id))
 
     if (evaluation) {
       res.status(200).json({
@@ -45,21 +51,16 @@ class LatestEvaluationsController {
     throw new NotFoundException(res.__('errors.Evaluation Not Found'))
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   * @param {import ('express').NextFunction} next
-   */
   @Bind
-  async getAll(req, res) {
-    const page = req.query.page
-    const user = req.user
+  async getAll(req: Request, res: Response): Promise<Response> {
+    const page = req.query.page as unknown as number
+    const user = req.user!
 
     if (req.query.own) {
       const { results, total } = await this.evaluationsService.getAll({
         teacherId: user.id,
         page
-      })
+      }) as unknown as { results: Record<string, unknown>[]; total: number }
 
       const paginationStack = {
         total,
@@ -72,19 +73,20 @@ class LatestEvaluationsController {
         pagination: createPaginationStack(paginationStack),
         statusCode: 200
       })
-      return
+      return res
     }
 
     const { results, total } = await this.evaluationsService.getAll({
       page,
       limit: this.#limit,
       userId: user.id
-    })
+    }) as unknown as { results: Record<string, unknown>[]; total: number }
 
     const mapToMarking = results.map(({ data }) => {
+      const typedData = data as Record<string, Record<string, unknown>[]>
       return {
-        writings: data.writings.map(writing => writing.critery),
-        speakings: data.speakings.map(speakings => speakings.critery)
+        writings: typedData.writings.map(writing => writing.critery),
+        speakings: typedData.speakings.map(speakings => speakings.critery)
       }
     })
 
@@ -102,45 +104,33 @@ class LatestEvaluationsController {
     })
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getCount(req, res) {
-    const teacher = req.user
+  async getCount(req: Request, res: Response): Promise<Response> {
+    const teacher = req.user!
 
-    /**
-     * @description
-     * Parallel request, for catching all counts from speakings and writings.
-     */
     const [speaking, writing] = await Promise.all([
       this.categoriesService.getOne({ name: Categories.Speaking }),
       this.categoriesService.getOne({ name: Categories.Writing })
     ])
 
-    /**
-     * @description
-     * Parallel request, for getting data from the count service.
-     */
     const [speakings, writings, countClasses] = await Promise.all([
       this.evaluationsService.count({
         teacherId: teacher.id,
-        categoryId: speaking.id
+        categoryId: (speaking as unknown as Record<string, unknown>).id as number
       }),
       this.evaluationsService.count({
         teacherId: teacher.id,
-        categoryId: writing.id
+        categoryId: (writing as unknown as Record<string, unknown>).id as number
       }),
       this.classesService.getAll({
         count: true,
         options: {
           teacherId: teacher.id
         }
-      })
+      } as unknown as Parameters<typeof this.classesService.getAll>[0])
     ])
 
-    const classes = countClasses.length
+    const classes = (countClasses as unknown as unknown[]).length
 
     return res.status(200).json({
       message: 'Count obtained successfully',
