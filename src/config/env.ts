@@ -48,8 +48,8 @@ export type Env = z.infer<typeof envSchema>
 const parsed = envSchema.safeParse(process.env)
 
 if (!parsed.success) {
-  console.error('[env] Invalid environment variables:')
-  console.error(JSON.stringify(parsed.error.format(), null, 2))
+  globalThis.console.error('[env] Invalid environment variables:')
+  globalThis.console.error(JSON.stringify(parsed.error.format(), null, 2))
   process.exit(1)
 }
 
