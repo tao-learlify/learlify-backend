@@ -5,46 +5,37 @@ import { Bind } from 'decorators'
 import { Logger } from 'api/logger'
 import { ConfigService } from 'api/config/config.service'
 import { MODE } from 'common/process'
+import type { ConfigurationProvider } from '@types'
 import events from './stripe.events'
+import type { StripeCustomer, StripeIntentInfo, PaymentResponse } from './stripe.types'
 
 const privateStripeKey = Symbol('privateStripeKey')
 
-/**
- * @typedef {Object} Customer
- * @property {string} source
- * @property {string} stripeCustomerId
- * @property {string} firstName
- * @property {string} lastName
- * @property {string} email
- */
-
-/**
- * @typedef {Object} Charge
- * @property {number} amount
- * @property {'USD' | 'EUR'} currency
- * @property {string} name
- * @property {string} customer
- */
-
 class StripeService {
+  logger: typeof Logger.Service
+  provider: ConfigurationProvider
+  declare [privateStripeKey]: Stripe
+
   constructor() {
     this.logger = Logger.Service
     this.provider = new ConfigService().provider
-    this[privateStripeKey] = new Stripe(process.env.STRIPE_API_KEY)
+    this[privateStripeKey] = new (Stripe as unknown as new (key: string) => Stripe)(
+      process.env.STRIPE_API_KEY!
+    )
   }
 
-  /**
-   * @see https://stripe.com/docs/payments/payment-intents/migration-synchronous
-   * @param {{}} intent
-   */
-  static generatePaymentResponse(intent) {
+  private get stripe(): Stripe {
+    return this[privateStripeKey]
+  }
+
+  static generatePaymentResponse(intent: Stripe.PaymentIntent): PaymentResponse {
     if (
       intent.status === events.REQUIRES_ACTION &&
-      intent.next_action.type === events.USE_STRIPE_SDK
+      intent.next_action!.type === events.USE_STRIPE_SDK
     ) {
       return {
         requiresAction: true,
-        paymentIntentClientSecret: intent.client_secret
+        paymentIntentClientSecret: intent.client_secret!
       }
     } else if (intent.status === events.SUCCEEDED) {
       return {
@@ -57,11 +48,8 @@ class StripeService {
     }
   }
 
-  /**
-   * @param {Customer} customer
-   */
   @Bind
-  async addCustomer(customer) {
+  async addCustomer(customer: StripeCustomer) {
     const { firstName, lastName, stripeCustomerId } = customer
 
     if (stripeCustomerId) {
@@ -76,7 +64,7 @@ class StripeService {
       .digest('hex')
 
     try {
-      const membership = await this[privateStripeKey].customers.create(
+      const membership = await this.stripe.customers.create(
         {
           source: customer.source,
           email: customer.email,
@@ -96,14 +84,11 @@ class StripeService {
     }
   }
 
-  /**
-   * @param {Charge} intentInfo
-   */
   @Bind
-  async addIntentPayment(intentInfo) {
+  async addIntentPayment(intentInfo: StripeIntentInfo) {
     this.logger.debug('intent', intentInfo)
 
-    const stripe = this[privateStripeKey]
+    const stripe = this.stripe
 
     this.logger.debug('stripe.intent', intentInfo)
 
@@ -143,14 +128,11 @@ class StripeService {
     }
   }
 
-  /**
-   * @param {string} paymentIntentId
-   */
   @Bind
-  async confirmIntentPayment(paymentIntentId) {
+  async confirmIntentPayment(paymentIntentId: string) {
     this.logger.debug(paymentIntentId)
 
-    const stripe = this[privateStripeKey]
+    const stripe = this.stripe
 
     try {
       const intent = await stripe.paymentIntents.confirm(paymentIntentId)
@@ -161,13 +143,13 @@ class StripeService {
     } catch (err) {
       this.logger.error('intentPaymentConfirmationError', err)
 
-      throw new Error(err.message)
+      throw new Error((err as Error).message)
     }
   }
 
   @Bind
-  async cancelPaymentIntent(paymentIntentId) {
-    const stripe = this[privateStripeKey]
+  async cancelPaymentIntent(paymentIntentId: string) {
+    const stripe = this.stripe
 
     try {
       const intent = await stripe.paymentIntents.cancel(paymentIntentId)
@@ -178,7 +160,7 @@ class StripeService {
     } catch (err) {
       this.logger.error('intentPaymentCancelError', err)
 
-      throw new Error(err.message)
+      throw new Error((err as Error).message)
     }
   }
 }

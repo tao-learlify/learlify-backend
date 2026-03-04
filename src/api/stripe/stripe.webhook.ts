@@ -1,4 +1,5 @@
 import express from 'express'
+import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { Logger } from 'api/logger'
 import db from 'config/db'
@@ -7,39 +8,33 @@ const router = express.Router()
 
 const logger = Logger.Service
 
-const stripe = new Stripe(process.env.STRIPE_API_KEY)
+const stripe = new (Stripe as unknown as new (key: string) => Stripe)(
+  process.env.STRIPE_API_KEY!
+)
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
 
-/**
- * Stripe webhook endpoint.
- *
- * Must be mounted BEFORE the global json() middleware so that
- * express.raw() receives the raw body required by constructEvent.
- *
- * @see https://stripe.com/docs/webhooks/signatures
- */
 router.post(
   '/webhooks/stripe',
   express.raw({ type: 'application/json' }),
-  async (req, res) => {
-    const sig = req.headers['stripe-signature']
+  async (req: Request, res: Response) => {
+    const sig = req.headers['stripe-signature'] as string
 
     if (!WEBHOOK_SECRET) {
       logger.error('STRIPE_WEBHOOK_SECRET is not set')
       return res.status(500).json({ error: 'Webhook secret not configured' })
     }
 
-    let event
+    let event: Stripe.Event
 
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, WEBHOOK_SECRET)
     } catch (err) {
-      logger.error('stripe.webhook.signature', { message: err.message })
+      logger.error('stripe.webhook.signature', { message: (err as Error).message })
       return res
         .status(400)
         .json({
-          error: `Webhook signature verification failed: ${err.message}`
+          error: `Webhook signature verification failed: ${(err as Error).message}`
         })
     }
 
@@ -50,7 +45,7 @@ router.post(
         .where({ event_id: event.id })
         .first()
     } catch (err) {
-      logger.error('stripe.webhook.db.read', { message: err.message })
+      logger.error('stripe.webhook.db.read', { message: (err as Error).message })
       return res.status(500).json({ error: 'Database error processing webhook' })
     }
 
@@ -70,19 +65,19 @@ router.post(
       switch (event.type) {
         case 'payment_intent.succeeded':
           logger.info('stripe.webhook.payment_intent.succeeded', {
-            id: event.data.object.id
+            id: (event.data.object as Stripe.PaymentIntent).id
           })
           break
 
         case 'payment_intent.payment_failed':
           logger.warn('stripe.webhook.payment_intent.failed', {
-            id: event.data.object.id
+            id: (event.data.object as Stripe.PaymentIntent).id
           })
           break
 
         case 'customer.subscription.deleted':
           logger.info('stripe.webhook.subscription.deleted', {
-            id: event.data.object.id
+            id: (event.data.object as Stripe.Subscription).id
           })
           break
 
@@ -93,8 +88,8 @@ router.post(
       return res.status(200).json({ received: true })
     } catch (err) {
       logger.error('stripe.webhook.handler', {
-        message: err.message,
-        stack: err.stack
+        message: (err as Error).message,
+        stack: (err as Error).stack
       })
       return res
         .status(500)
