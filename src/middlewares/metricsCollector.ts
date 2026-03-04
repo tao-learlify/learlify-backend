@@ -1,3 +1,4 @@
+import type { RequestHandler } from 'express'
 import client from 'prom-client'
 
 const register = client.register
@@ -19,14 +20,17 @@ const httpRequestDurationSeconds = new client.Histogram({
   registers: [register]
 })
 
-function metricsCollector(req, res, next) {
+const metricsCollector: RequestHandler = (req, res, next): void => {
   const start = process.hrtime.bigint()
 
   res.on('finish', () => {
     const durationNs = process.hrtime.bigint() - start
     const durationSec = Number(durationNs) / 1e9
 
-    const route = req.route ? req.baseUrl + req.route.path : req.path
+    const route = req.route
+      ? req.baseUrl + String((req.route as { path: unknown }).path)
+      : req.path
+
     const labels = {
       method: req.method,
       route,

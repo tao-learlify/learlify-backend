@@ -19,14 +19,10 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }
 
-/**
- * @description
- * RootMiddleware.
- */
 const helmetOptions = {
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' as const }
 }
 
 const rootMiddleware = [
