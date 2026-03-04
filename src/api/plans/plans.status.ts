@@ -2,9 +2,9 @@ const STATUS = {
   COURSES: 'COURSES',
   CLASSES: 'CLASSES',
   EXAMS: 'EXAMS',
-  asArray() {
+  asArray(): string[] {
     return [this.COURSES, this.CLASSES, this.EXAMS]
   }
-}
+} as const
 
-module.exports = STATUS
+export = STATUS

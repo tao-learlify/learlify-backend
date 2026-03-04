@@ -22,6 +22,7 @@ declare global {
       requestId?: string
       locale?: string
       timezone?: string
+      currency?: string
     }
 
     interface Response {

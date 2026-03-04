@@ -8,8 +8,17 @@ import { Plan } from 'metadata/plans'
 import { ModelsService } from 'api/models/models.service'
 import { Models } from 'metadata/models'
 
+import type { Request, Response } from 'express'
+import type { OffersConfig } from './plans.types'
+
 const pathPNG = 'https://dkmwdxc6g4lk7.cloudfront.net/assets/img'
+
 export class PlansController {
+  plansService: PlansService
+  packagesService: PackagesService
+  modelsService: ModelsService
+  offers: OffersConfig
+
   constructor() {
     this.plansService = new PlansService()
     this.packagesService = new PackagesService()
@@ -32,25 +41,17 @@ export class PlansController {
     }
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   */
   @Bind
-  async getAll(req, res) {
+  async getAll(req: Request, res: Response) {
     const currency = req.currency ? req.currency : 'EUR'
 
-    const data = {}
+    const data: Record<string, unknown> = {}
 
     const model = await this.modelsService.getOne({
       name: req.query.model
     })
 
     if (model) {
-      /**
-       * @description
-       * Searching for pricing first.
-       */
       if (req.query.pricing) {
         switch (model.name) {
           case Models.APTIS:
@@ -79,22 +80,14 @@ export class PlansController {
         })
       }
 
-      /**
-       * @description
-       * Searching offers for the user.
-       */
       if (req.query.offers) {
         const packages = await this.packagesService.getAll({
           isActive: true,
-          userId: req.user.id,
+          userId: req.user!.id,
           modelId: model.id
         })
 
-        /**
-         * @description
-         * Getting defaults
-         */
-        const defaults = this.offers[model.name].byDefault
+        const defaults = this.offers[model.name as string].byDefault
 
         if (packages.length === 0) {
           const plans = await this.plansService.getAll({
@@ -109,24 +102,12 @@ export class PlansController {
           })
         }
 
-        /**
-         * @description
-         * Filtering only names
-         */
-        const names = packages.map(plan => plan?.name)
+        const names = (packages as unknown as Array<{ name?: string }>).map(plan => plan?.name)
 
-        /**
-         * @description
-         * Filtering his offers
-         */
-        const filter = names.find(name => this.offers[model.name][name])
+        const filter = names.find(name => this.offers[model.name as string][name as string])
 
-        /**
-         * @description
-         * Fetching data from the database
-         */
         const offers = await this.plansService.getAll({
-          names: filter || defaults,
+          names: (filter || defaults) as string[],
           modelId: model.id,
           currency
         })
@@ -142,7 +123,7 @@ export class PlansController {
         available: true
       })
 
-      const resource = plans.map(plan => ({
+      const resource = (plans as unknown as Array<Record<string, unknown>>).map(plan => ({
         ...plan,
         currencyImage: pathPNG.concat('/', currency.toLowerCase(), '.png')
       }))
@@ -157,7 +138,7 @@ export class PlansController {
   }
 
   @Bind
-  async updateOne(req, res) {
+  async updateOne(req: Request, res: Response) {
     const { planId, ...props } = req.body
 
     const plan = await this.plansService.getOne(null, planId)
@@ -179,10 +160,10 @@ export class PlansController {
   }
 
   @Bind
-  async findOne(req, res) {
+  async findOne(req: Request, res: Response) {
     const id = req.params.id
 
-    const plan = await this.plansService.getOne(null, id)
+    const plan = await this.plansService.getOne(null, parseInt(id))
 
     if (plan) {
       return res.status(200).json({
@@ -196,13 +177,13 @@ export class PlansController {
   }
 
   @Bind
-  async remove(req, res) {
+  async remove(req: Request, res: Response) {
     const id = req.params.id
 
-    const plan = await this.plansService.getOne(null, id)
+    const plan = await this.plansService.getOne(null, parseInt(id))
 
     if (plan) {
-      await this.plansService.remove(id)
+      await this.plansService.remove(parseInt(id))
 
       return res.status(200).json({
         message: 'Plan has been deleted succesfully',
@@ -217,7 +198,7 @@ export class PlansController {
   }
 
   @Bind
-  async create(req, res) {
+  async create(req: Request, res: Response) {
     const plan = await this.plansService.create(req.body)
 
     return res.status(200).json({

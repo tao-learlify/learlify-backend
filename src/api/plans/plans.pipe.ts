@@ -1,7 +1,7 @@
 import { checkSchema } from 'express-validator'
 
-export class Plan {
-  get getAll () {
+export class PlansPipe {
+  get getAll(): ReturnType<typeof checkSchema> {
     return checkSchema({
       offers: {
         in: 'query',
@@ -20,7 +20,7 @@ export class Plan {
     })
   }
 
-  get update() {
+  get update(): ReturnType<typeof checkSchema> {
     return checkSchema({
       available: {
         in: 'body',
@@ -84,7 +84,8 @@ export class Plan {
       }
     })
   }
-  get findOne() {
+
+  get findOne(): ReturnType<typeof checkSchema> {
     return checkSchema({
       id: {
         in: 'params',
@@ -93,7 +94,8 @@ export class Plan {
       }
     })
   }
-  get create() {
+
+  get create(): ReturnType<typeof checkSchema> {
     return checkSchema({
       available: {
         in: 'body',
@@ -145,9 +147,10 @@ export class Plan {
       }
     })
   }
-  get remove() {
+
+  get remove(): ReturnType<typeof checkSchema> {
     return checkSchema({})
   }
 }
 
-export const pipe = new Plan()
+export const pipe = new PlansPipe()

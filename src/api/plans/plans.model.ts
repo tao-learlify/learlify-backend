@@ -1,18 +1,33 @@
 import { Model } from 'objection'
+import type { JSONSchema, RelationMappings, ModelClass, Modifiers, QueryBuilder } from 'objection'
 import Gift from 'api/gifts/gifts.model'
 import Access from 'api/access/access.model'
 import Models from 'api/models/models.model'
 
 class Plan extends Model {
-  static get tableName() {
+  id!: number
+  name?: string
+  classes?: number
+  description?: string
+  currency?: string
+  writing?: number
+  speaking?: number
+  price?: number
+  feature?: string
+  modelId?: number
+  model?: Record<string, unknown>
+  createdAt?: string
+  updatedAt?: string
+
+  static get tableName(): string {
     return 'plans'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -30,10 +45,10 @@ class Plan extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       gifts: {
-        modelClass: Gift,
+        modelClass: Gift as unknown as ModelClass<Model>,
         relation: Model.HasOneRelation,
         join: {
           from: 'plans.id',
@@ -41,7 +56,7 @@ class Plan extends Model {
         }
       },
       access: {
-        modelClass: Access,
+        modelClass: Access as unknown as ModelClass<Model>,
         relation: Model.HasManyRelation,
         join: {
           from: 'plans.id',
@@ -49,7 +64,7 @@ class Plan extends Model {
         }
       },
       model: {
-        modelClass: Models,
+        modelClass: Models as unknown as ModelClass<Model>,
         relation: Model.HasOneRelation,
         join: {
           from: 'plans.modelId',
@@ -59,12 +74,9 @@ class Plan extends Model {
     }
   }
 
-  /**
-   * @returns {import ('objection').Modifiers}
-   */
-  static get modifiers() {
+  static get modifiers(): Modifiers {
     return {
-      name(builder) {
+      name(builder: QueryBuilder<Model>) {
         builder.select(['name'])
       }
     }
