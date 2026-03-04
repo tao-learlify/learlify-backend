@@ -81,7 +81,6 @@ const SQL = Evaluation.knex()
       for (const row of rows) {
         await Evaluation.query(T)
           .update({
-            refVersion: null,
             data: null
           })
           .where({ id: row.id })
@@ -286,19 +285,19 @@ const SQL = Evaluation.knex()
 
         try {
           if (speakings.length > 0 || writings.length > 0) {
-            const latest = (await LatestEvaluation.query(T).insert({
-              id: row.id,
+            const evaluationData: LatestEvaluationInsertDTO = {
+              comments: row.comments,
+              marking: row.marking,
+              writings: writings,
+              speakings: speakings
+            }
+
+            const latest = await LatestEvaluation.query(T).insert({
               userId: row.userId,
               teacherId: row.teacherId,
               categoryId: row.categoryId,
-              status: 'EVALUATED',
-              data: {
-                comments: row.comments,
-                marking: row.marking,
-                writings: writings,
-                speakings: speakings
-              } as LatestEvaluationInsertDTO
-            })) as unknown as { id: number }
+              data: evaluationData
+            })
 
             logger.info('Created evaluation', {
               id: latest.id

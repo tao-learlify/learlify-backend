@@ -1,5 +1,6 @@
-import { checkSchema, body } from 'express-validator'
 import moment from 'moment'
+import { checkSchema, body } from 'express-validator'
+
 export class GlobalPipe {
   static get identifierParameter() {
     return checkSchema({

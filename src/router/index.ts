@@ -7,15 +7,15 @@ type ApplicationInterfaceConfig = {
 }
 
 export class ApplicationInterfaceService {
-  controllers: HttpConsumer[]
-  logger: typeof Logger.Service
+  private logger: typeof Logger.Service
+  private controllers: HttpConsumer[]
 
   constructor({ controllers }: ApplicationInterfaceConfig) {
     this.controllers = controllers || []
     this.logger = Logger.Service
   }
 
-  applyRouterManagement(): ExpressRouter {
+  public applyRouterManagement(): ExpressRouter {
     const router = Router()
 
     this.logger.info('Settings for controllers')

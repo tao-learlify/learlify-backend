@@ -1,18 +1,16 @@
 import type { Server } from 'socket.io'
 import { stream } from '../index'
 
-class Socket {
-  socket: Server
+export class Socket {
+  private socket: Server
 
   constructor() {
     this.socket = stream
   }
 
-  main(): { args: null } | void {
+  public main(): { args: null } | void {
     return {
       args: null
     }
   }
 }
-
-export { Socket }

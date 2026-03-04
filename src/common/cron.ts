@@ -12,8 +12,8 @@ type CronProperties = {
 }
 
 class Scheduler {
-  logger: typeof Logger.Service
-  triggers: TaskTrigger[]
+  private logger: typeof Logger.Service
+  private triggers: TaskTrigger[]
 
   constructor(props: CronProperties) {
     this.logger = Logger.Service
