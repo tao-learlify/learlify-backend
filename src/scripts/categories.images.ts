@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import Categories from 'api/categories/categories.model'
 import Plans from 'api/plans/plans.model'
 

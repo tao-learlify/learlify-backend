@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 
 import { v4 as UUID } from 'uuid'
 

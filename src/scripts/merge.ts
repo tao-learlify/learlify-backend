@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import data from './exports/data.json'
 import LatestEvaluation from 'api/latest-evaluations/latestEvaluations.model'
 

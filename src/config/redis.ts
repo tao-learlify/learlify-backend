@@ -1,9 +1,9 @@
 import Redis from 'ioredis'
 import logger from 'utils/logger'
 
-let client = null
+let client: Redis | null = null
 
-function createRedisClient() {
+function createRedisClient(): Redis | null {
   if (!process.env.REDIS_URL) {
     return null
   }
@@ -12,7 +12,7 @@ function createRedisClient() {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
     lazyConnect: true,
-    retryStrategy(times) {
+    retryStrategy(times): number {
       const delay = Math.min(times * 100, 3000)
       return delay
     }
@@ -33,14 +33,14 @@ function createRedisClient() {
   return redis
 }
 
-function getRedisClient() {
+function getRedisClient(): Redis | null {
   if (client === null) {
     client = createRedisClient()
   }
   return client
 }
 
-async function closeRedisClient() {
+async function closeRedisClient(): Promise<void> {
   if (client) {
     await client.quit()
     client = null

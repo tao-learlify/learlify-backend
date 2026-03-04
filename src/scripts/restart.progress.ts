@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import Progress from 'api/progress/progress.model'
 import { v4 as UUID } from 'uuid'
 import { Logger } from 'api/logger'

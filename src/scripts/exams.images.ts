@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import Exam from 'api/exams/exams.model'
 import Model from 'api/models/models.model'
 

@@ -5,8 +5,6 @@ dotenv.config()
 
 const enviroment = process.env.NODE_ENV || 'development'
 
-/* Base config for the app, it will be overriden by the specific config
-for the enviroment that that the app is being executed in. */
 const config = {
   APP_HOST: process.env.HOST || 'localhost',
   APP_PORT: process.env.PORT || 3100,
@@ -62,7 +60,7 @@ if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is required')
 }
 
-const REQUIRED_ENV = [
+const REQUIRED_ENV: Array<[string, string]> = [
   ['STRIPE_API_KEY', 'Stripe payments will not work'],
   ['TWILIO_API_ACCOUNT_SID', 'Twilio video calls will not work'],
   ['TWILIO_API_KEY_SID', 'Twilio video calls will not work'],
@@ -82,16 +80,14 @@ if (!hasSendgrid) {
 }
 
 if (process.env.SENDGRIND_API_KEY && !process.env.SENDGRID_API_KEY) {
-  // eslint-disable-next-line no-console
-  console.warn(
+  globalThis.console.warn(
     '[DEPRECATION] SENDGRIND_API_KEY is deprecated. Please rename it to SENDGRID_API_KEY in your .env file.'
   )
 }
 
 for (const [key, hint] of REQUIRED_ENV) {
   if (!process.env[key]) {
-    // eslint-disable-next-line no-console
-    console.warn(`[WARNING] ${key} is not set — ${hint}`)
+    globalThis.console.warn(`[WARNING] ${key} is not set — ${hint}`)
   }
 }
 

@@ -1,9 +1,11 @@
+import type { Request, Response } from 'express'
 import { Logger } from 'api/logger'
 
 const root = {
   apiVersion: '/api/v1',
   cors: '*',
-  handler: (_req, res) => {
+  handler: (_req: Request, res: Response): Response => {
+    void _req
 
     return res.status(200).json({
       response: {
@@ -23,7 +25,9 @@ const root = {
   locales: ['es', 'en'],
   logger: {
     stream: {
-      write: message => Logger.Service.info(message.trim())
+      write: (message: string): void => {
+        Logger.Service.info(message.trim())
+      }
     }
   },
   main: '/system',

@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import Access from 'api/access/access.model'
 import Plans from 'api/plans/plans.model'
 import { Plan } from 'metadata/plans'

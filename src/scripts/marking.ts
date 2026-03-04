@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import 'config/db.js'
+import 'config/db'
 import { Model } from 'objection'
 import fs from 'fs'
 import path from 'path'
