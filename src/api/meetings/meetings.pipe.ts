@@ -1,7 +1,8 @@
 import { checkSchema } from 'express-validator'
+import type { ValidationChain } from 'express-validator'
 
 class Meetings {
-  get token () {
+  get token(): ValidationChain[] {
     return checkSchema({
       room: {
         in: 'query',
@@ -9,16 +10,15 @@ class Meetings {
       }
     })
   }
-  
-  
-  get identity () {
+
+  get identity(): ValidationChain[] {
     return checkSchema({
       email: {
         in: 'query',
         isEmail: true
       },
       room: {
-        in:'query',
+        in: 'query',
         isString: true
       }
     })

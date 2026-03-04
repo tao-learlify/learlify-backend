@@ -1,20 +1,27 @@
 import { Model } from 'objection'
+import type { JSONSchema, RelationMappings, Modifiers, QueryBuilder } from 'objection'
 import Classes from 'api/classes/classes.model'
 import User from 'api/users/users.model'
+import type { ModelClass } from 'objection'
 
 class Meeting extends Model {
-  static get tableName() {
+  id!: number
+  classId?: number
+  userId?: number
+  closed?: boolean
+  timezone?: string
+  user?: Record<string, unknown>
+  meetings?: Meeting[]
+
+  static get tableName(): string {
     return 'meetings'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  /**
-   * @returns {import('objection').JsonSchema}
-   */
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -24,13 +31,10 @@ class Meeting extends Model {
     }
   }
 
-  /**
-   * @returns {import ('objection').RelationMappings}
-   */
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       classes: {
-        modelClass: Classes,
+        modelClass: Classes as unknown as ModelClass<Model>,
         relation: Model.HasManyRelation,
         join: {
           from: 'meetings.classId',
@@ -39,7 +43,7 @@ class Meeting extends Model {
       },
 
       user: {
-        modelClass: User,
+        modelClass: User as unknown as ModelClass<Model>,
         relation: Model.HasOneRelation,
         join: {
           from: 'meetings.userId',
@@ -49,12 +53,9 @@ class Meeting extends Model {
     }
   }
 
-  /**
-   * @returns {import ('objection').Modifiers}
-   */
-  static get modifiers() {
+  static get modifiers(): Modifiers {
     return {
-      withData(builder) {
+      withData(builder: QueryBuilder<Meeting>) {
         builder.select(['closed', 'timezone']).withGraphFetched({
           user: {
             $modify: ['withName']
@@ -62,7 +63,7 @@ class Meeting extends Model {
         })
       },
 
-      withUser (builder) {
+      withUser(builder: QueryBuilder<Meeting>) {
         builder.select(['closed, userId'])
       }
     }

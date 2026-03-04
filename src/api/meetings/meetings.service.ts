@@ -1,64 +1,40 @@
 import Twilio from 'twilio'
 import Meeting from './meetings.model'
 import { Bind } from 'decorators'
-
-/**
- * @typedef {Object} Source
- * @property {number} id
- */
+import type { MeetingSource, JoinMeetingResult } from './meetings.types'
 
 class MeetingsService {
+  private VideoGrant: typeof Twilio.jwt.AccessToken.VideoGrant
+
   constructor() {
     this.VideoGrant = Twilio.jwt.AccessToken.VideoGrant
   }
 
-  /**
-   * @param {Source} meeting
-   * @returns {Promise<Meeting>}
-   */
-  create(meeting) {
+  create(meeting: MeetingSource) {
     return Meeting.query().insertAndFetch(meeting)
   }
 
-  /**
-   * @param {Source} meeting
-   * @returns {Promise<Meeting>}
-   */
-  getOne(meeting) {
+  getOne(meeting: MeetingSource) {
     return Meeting.query().findOne(meeting)
   }
 
-  /**
-   *
-   * @param {Source} meeting
-   */
-  getActiveMeetings(meeting) {
+  getActiveMeetings(meeting: MeetingSource) {
     return Meeting.query()
       .withGraphJoined('[classes.[schedule(activeFields)], user(withName)]')
       .where(meeting)
       .andWhere('classes.expired', false)
   }
 
-  /**
-   * @param {Source} meeting
-   * @param {{}} options
-   * @returns {Promise<Meeting>}
-   */
-  update(meeting, options) {
+  update(meeting: MeetingSource, options: MeetingSource) {
     return Meeting.query().updateAndFetch(meeting).where(options)
   }
 
-  /**
-   * @param {string} username
-   * @param {string} roonName
-   * @returns {{ identity?: string, token?: string }}
-   */
   @Bind
-  joinMeeting(username, roonName) {
+  joinMeeting(username: string, roonName: string): JoinMeetingResult {
     const token = new Twilio.jwt.AccessToken(
-      process.env.TWILIO_API_ACCOUNT_SID,
-      process.env.TWILIO_API_KEY_SID,
-      process.env.TWILIO_API_KEY_SECRET
+      process.env.TWILIO_API_ACCOUNT_SID!,
+      process.env.TWILIO_API_KEY_SID!,
+      process.env.TWILIO_API_KEY_SECRET!
     )
 
     Object.assign(token, { identity: username })

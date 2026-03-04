@@ -9,8 +9,15 @@ import {
 } from 'exceptions'
 import { Logger } from 'api/logger'
 import { AuthenticationService } from 'api/authentication/authentication.service'
+import type { Request, Response } from 'express'
 
 export class MeetingsController {
+  private classesService: ClassesService
+  private meetingsService: MeetingsService
+  private usersService: UsersService
+  private authService: AuthenticationService
+  private logger: typeof Logger.Service
+
   constructor() {
     this.classesService = new ClassesService()
     this.meetingsService = new MeetingsService()
@@ -19,43 +26,30 @@ export class MeetingsController {
     this.logger = Logger.Service
   }
 
-  /**
-   * @param {import ('express').Request} req
-   * @param {import ('express').Response} res
-   * @param {import ('express').NextFunction} next
-   */
   @Bind
-  async token(req, res) {
-    const user = req.user
+  async token(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
 
     const room = req.query.room
 
     const classRoom = await this.classesService.getOne({
       name: room
-    })
+    } as unknown as Parameters<typeof this.classesService.getOne>[0])
 
     if (classRoom) {
       this.logger.info('classRoom', { classRoom })
 
-      if (classRoom.schedule.streaming) {
-        /**
-         * @description
-         * If user in the classRoom we can grant a token.
-         */
-        const userInRoom = classRoom.meetings.find(
-          meeting => meeting.user.id === user.id
+      if ((classRoom as unknown as Record<string, unknown>).schedule && ((classRoom as unknown as Record<string, Record<string, unknown>>).schedule).streaming) {
+        const userInRoom = ((classRoom as unknown as Record<string, Record<string, unknown>[]>).meetings || []).find(
+          (meeting: Record<string, unknown>) => (meeting.user as Record<string, unknown>)?.id === user.id
         )
 
-        /**
-         * @description
-         * If the teacher is in room we can grant a token.
-         */
-        const teacherInRoom = classRoom.schedule.teacher.email === user.email
+        const teacherInRoom = ((classRoom as unknown as Record<string, Record<string, Record<string, unknown>>>).schedule).teacher?.email === user.email
 
         if (userInRoom || teacherInRoom) {
           const response = await this.meetingsService.joinMeeting(
             user.email,
-            room
+            room as string
           )
 
           return res.status(200).json({
@@ -76,16 +70,10 @@ export class MeetingsController {
     throw new NotFoundException(res.__('errors.The meeting doesnt exist'))
   }
 
-
-  /**
-   * 
-   * @param {import ('express').Request} req 
-   * @param {import ('express').Response} res 
-   */
   @Bind
-  async twilioTest (req, res) {
-    const user = req.user
-  
+  async twilioTest(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
+
     const response = await this.meetingsService.joinMeeting(
       user.email,
       'client'
@@ -97,26 +85,20 @@ export class MeetingsController {
     })
   }
 
-
-  /**
-   * 
-   * @param {import ('express').Request} req 
-   * @param {import ('express').Response} res 
-   */
   @Bind
-  async identity (req, res) {
+  async identity(req: Request, res: Response): Promise<Response> {
     const user = await this.usersService.getOne({
       email: req.query.email
-    })
+    } as unknown as Parameters<typeof this.usersService.getOne>[0])
 
     const classRoom = await this.classesService.getOne({
       name: req.query.room
-    })
+    } as unknown as Parameters<typeof this.classesService.getOne>[0])
 
-    if (classRoom.schedule.streaming) {
+    if ((classRoom as unknown as Record<string, Record<string, unknown>>).schedule?.streaming) {
       return res.status(200).json({
         response: this.authService.encrypt({
-          ...user
+          ...user as Record<string, unknown>
         }),
         statusCode: 200
       })
