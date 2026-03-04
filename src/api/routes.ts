@@ -1,4 +1,4 @@
-import { ApplicationInterfaceService } from 'router'
+import { ApplicationInterfaceService } from '../router'
 
 import Access from 'api/access/access.routes'
 import Admin from 'api/admin/admin.routes'

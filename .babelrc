@@ -12,6 +12,12 @@
   ],
   "plugins": [
     [
+      "@babel/plugin-transform-typescript",
+      {
+        "allowDeclareFields": true
+      }
+    ],
+    [
       "module-resolver",
       {
         "root": ["./src"],

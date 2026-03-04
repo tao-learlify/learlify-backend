@@ -21,7 +21,7 @@ class Scheduler {
   }
 
   @Readonly
-  execute(): void {
+  public execute(): void {
     this.logger.debug('scheduleAsyncTask: running', Scheduler.name)
 
     for (const index in this.triggers) {

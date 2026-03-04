@@ -99,7 +99,7 @@
   },
   "scripts": {
     "build": "rimraf dist && babel src -D --out-dir dist --extensions '.js,.ts' && node dist && node prod.js",
-    "start": "cross-env NODE_ENV=development nodemon --watch .env --watch src --exec babel-node src --source-maps",
+    "start": "cross-env NODE_ENV=development NODE_PATH=./src nodemon --legacy-watch --watch .env --watch src --exec babel-node --extensions '.ts,.js' src/index.ts --source-maps",
     "prod": "cross-env NODE_ENV=production npm run build",
     "test": "cross-env NODE_ENV=test jest --forceExit --runInBand",
     "test:coverage": "cross-env NODE_ENV=test jest --forceExit --runInBand --coverage",

@@ -16,8 +16,8 @@ import { isRunningOnProductionOrDevelopment } from 'functions'
 class Schedule {
   controller: ScheduleController
   logger: typeof Logger.Service
-  schedules!: ExpressRouter
-  consumer!: HttpConsumer
+  declare schedules: ExpressRouter
+  declare consumer: HttpConsumer
 
   constructor() {
     this.controller = new ScheduleController()
