@@ -1,20 +1,25 @@
 import { Model } from 'objection'
+import type { JSONSchema, RelationMappings, ModelClass } from 'objection'
 
-/**
- * @alias relations
- */
-import User from '../users/users.model'
+import User from 'api/users/users.model'
 
 class CloudStorage extends Model {
-  static get tableName() {
+  id!: number
+  bucket!: string
+  location!: string
+  ETag!: string
+  key!: string
+  userId!: number
+
+  static get tableName(): string {
     return 'cloudstorage'
   }
 
-  static get idColumn() {
+  static get idColumn(): string {
     return 'id'
   }
 
-  static get jsonSchema() {
+  static get jsonSchema(): JSONSchema {
     return {
       type: 'object',
 
@@ -29,11 +34,11 @@ class CloudStorage extends Model {
     }
   }
 
-  static get relationMappings() {
+  static get relationMappings(): RelationMappings {
     return {
       users: {
         relation: Model.HasOneRelation,
-        modelClass: User,
+        modelClass: User as unknown as ModelClass<Model>,
         join: {
           from: 'cloudstorage.userId',
           to: 'users.id'

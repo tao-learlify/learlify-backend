@@ -1,15 +1,15 @@
 import { AmazonWebServices } from 'api/aws/aws.service'
+import type { Request, Response } from 'express'
 
 class ClientLogsController {
+  private aws: AmazonWebServices
+
   constructor() {
     this.aws = new AmazonWebServices()
   }
-  /**
-   * @param {import ('express').Request} req 
-   * @param {import ('express').Response} res 
-   */
-  async log(req, res) {
-    const user = req.user
+
+  async log(req: Request, res: Response): Promise<Response> {
+    const user = req.user!
 
     const folder = await this.aws.putObject({
       Key: `logs/${user.email}/`,
@@ -19,6 +19,5 @@ class ClientLogsController {
     return res.json(folder)
   }
 }
-
 
 export { ClientLogsController }

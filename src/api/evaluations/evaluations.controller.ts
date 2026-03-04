@@ -94,7 +94,7 @@ class EvaluationsController {
         for (const part in ids) {
           for (const speaking in ids[part]) {
             const cloudData = await this.cloudStorage.findOne({
-              id: ids[part][speaking]
+              id: ids[part][speaking] as number
             })
 
             ids[part][speaking] = cloudData
