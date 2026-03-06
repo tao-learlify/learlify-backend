@@ -1,8 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 1 — builder
-#   Instala TODAS las dependencias (devDeps incluidas para Babel),
-#   compila src/ → dist/ y resuelve los alias de module-resolver en tiempo
-#   de compilación, por lo que la imagen final no necesita babel-node.
+#   Instala TODAS las dependencias (devDeps incluidas para TypeScript),
+#   compila src/ → dist/ usando tsc y resuelve los alias con tsc-alias,
+#   por lo que la imagen final no necesita babel-node ni módulos de compilación.
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:18-alpine AS builder
 
@@ -10,23 +10,23 @@ WORKDIR /app
 
 # Copiar manifests primero para aprovechar la caché de capas
 COPY package*.json ./
-COPY .babelrc ./
 
 RUN npm ci
 
-# Copiar el código fuente y archivos necesarios
+# Copiar el código fuente y archivos de configuración necesarios
 COPY src/ ./src/
 COPY tsconfig.json ./
+COPY tsconfig.build.json ./
 
-# Compilar: los alias (api/, utils/, etc.) se resuelven a paths relativos
-# gracias a babel-plugin-module-resolver, por lo que dist/ es autónomo
-RUN npx babel src --out-dir dist --extensions '.js,.ts' --copy-files
+# Compilar con TypeScript y resolver path aliases
+# tsc-alias reemplaza los imports con aliases por rutas relativas
+RUN npx tsc -p tsconfig.build.json && npx tsc-alias -p tsconfig.build.json
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 2 — producción
 #   Imagen mínima: sólo dependencias de producción + dist/ compilado.
-#   Sin devDependencies, sin código fuente, sin Babel.
+#   Sin devDependencies, sin código fuente TypeScript, sin compiladores.
 # ─────────────────────────────────────────────────────────────────────────────
 FROM node:18-alpine AS production
 

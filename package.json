@@ -95,12 +95,13 @@
     "sinon": "^9.0.3",
     "socket.io-client": "^4.8.3",
     "supertest": "^4.0.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "build": "rimraf dist && babel src -D --out-dir dist --extensions '.js,.ts' && node dist && node prod.js",
+    "build": "rimraf dist && tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "start": "cross-env NODE_ENV=development NODE_PATH=./src nodemon --legacy-watch --watch .env --watch src --exec babel-node --extensions '.ts,.js' src/index.ts --source-maps",
-    "prod": "cross-env NODE_ENV=production npm run build",
+    "prod": "cross-env NODE_ENV=production npm run build && node dist/index.js",
     "test": "cross-env NODE_ENV=test jest --forceExit --runInBand",
     "test:coverage": "cross-env NODE_ENV=test jest --forceExit --runInBand --coverage",
     "seed": "npx knex seed:run --knexfile src/config/knexfile.ts",
