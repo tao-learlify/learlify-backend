@@ -2,11 +2,13 @@
   "EUR": {
     "Blue": 2500,
     "Green": 9500,
-    "Go": 900,
-    "Silver": 1200,
-    "Gold": 1500,
-    "Platinum": 2100,
-    "Curso": 1999
+    "Go": 1500,
+    "Silver": 2400,
+    "Gold": 2900,
+    "Platinum": 3900,
+    "Curso Aptis": 2000,
+    "Curso IELTS": 2000,
+    "Ruby": 4700
   },
   "USD": {
     "Blue": 3000,

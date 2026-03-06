@@ -6,6 +6,7 @@ import Models from 'api/models/models.model'
 
 class Plan extends Model {
   id!: number
+  available?: boolean
   name?: string
   classes?: number
   description?: string
@@ -33,6 +34,7 @@ class Plan extends Model {
 
       properties: {
         id: { type: 'integer' },
+        available: { type: 'boolean' },
         name: { type: 'string' },
         classes: { type: 'integer' },
         description: { type: 'string', maxLength: 512 },

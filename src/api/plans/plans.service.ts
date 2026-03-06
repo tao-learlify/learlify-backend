@@ -38,15 +38,18 @@ class PlansService {
   }
 
   @Bind
-  async getAll({ names, currency, ...options }: GetAllParams) {
+  async getAll({ names, currency, available = true, ...options }: GetAllParams) {
+    const filters = {
+      ...options,
+      available
+    }
+
     if (names) {
       if (names.length === 0) return []
 
       const plans = await Plan.query()
         .whereIn('name', names)
-        .andWhere(function () {
-          this.where(options)
-        })
+        .where(filters)
         .select(this.clientAttributes)
         .withGraphFetched(this.relation)
 
@@ -84,7 +87,7 @@ class PlansService {
     }
 
     return Plan.query()
-      .where(options)
+      .where(filters)
       .withGraphJoined(this.relation)
   }
 
