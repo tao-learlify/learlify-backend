@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   for (let index = 0; index < 5; index++) {
     await knex('exams').insert({
       name: `Exam ${index + 1}`,

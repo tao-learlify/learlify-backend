@@ -7,7 +7,7 @@ exports.up = function (knex: Knex): unknown {
     table.increments('id').primary()
     table.integer('evaluationId').unsigned()
     table.foreign('evaluationId').references('evaluations.id')
-    table.boolean('completed').notNull().defaultTo(false)
+    table.boolean('completed').notNullable().defaultTo(false)
     table.integer('userId').unsigned().notNullable()
     table
       .foreign('userId')

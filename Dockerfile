@@ -41,6 +41,11 @@ RUN npm ci --omit=dev
 # Traer el build desde la etapa anterior
 COPY --from=builder /app/dist ./dist
 
+# Copiar archivos necesarios para ejecutar migraciones con Railway CLI
+COPY --from=builder /app/src/migrations ./src/migrations
+COPY --from=builder /app/src/config/knexfile.ts ./src/config/knexfile.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+
 # El logger escribe en __dirname/../logs/logs.log → dist/logs/logs.log
 # Se recomienda montar este directorio como volumen externo
 RUN mkdir -p dist/logs
@@ -53,5 +58,5 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
   && chown -R appuser:appgroup /app
 USER appuser
 
-# Arrancar la aplicación compilada directamente con Node (sin babel-node)
+# Arrancar la aplicación compilada
 CMD ["node", "dist/index.js"]

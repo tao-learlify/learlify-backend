@@ -2,7 +2,7 @@ import type { Knex } from 'knex'
 
 const tableName = 'plans'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   await knex(tableName).insert({
     classes: 1,
     currency: 'EUR',
@@ -58,7 +58,7 @@ exports.up = async function (knex: Knex): Promise<unknown> {
   })
 }
 
-exports.down = async function (knex: Knex): Promise<unknown> {
+exports.down = async function (knex: Knex): Promise<void> {
   await knex(tableName)
     .del()
     .where({ name: 'Blue' })

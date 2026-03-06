@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   try {
     await knex('plans').update({ price: 900 }).where({ name: 'Go' })
   } catch (err) {
@@ -8,7 +8,7 @@ exports.up = async function (knex: Knex): Promise<unknown> {
   }
 }
 
-exports.down = async function (knex: Knex): Promise<unknown> {
+exports.down = async function (knex: Knex): Promise<void> {
   try {
     await knex('plans').update({ price: 500 }).where({ name: 'Go' })
   } catch (err) {

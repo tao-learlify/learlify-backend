@@ -12,7 +12,7 @@ exports.up = function (knex: Knex): unknown {
       .defaultTo(null)
     table
       .boolean('isNotified')
-      .notNull()
+      .notNullable()
       .defaultTo(false)
     table
       .integer('userId')

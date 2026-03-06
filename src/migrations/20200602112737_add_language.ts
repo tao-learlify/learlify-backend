@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   await knex('languages').insert({
     lang: 'Español',
     code: 'es-US'
@@ -12,7 +12,7 @@ exports.up = async function (knex: Knex): Promise<unknown> {
   })
 }
 
-exports.down = async function (knex: Knex): Promise<unknown> {
+exports.down = async function (knex: Knex): Promise<void> {
   await knex('languages')
     .where({ code: 'es-US' })
     .del()

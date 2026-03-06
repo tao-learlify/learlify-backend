@@ -2,7 +2,7 @@ import type { Knex } from 'knex'
 
 import PLANS_STATUS from '../api/plans/plans.status'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   return knex.schema.table('plans', table => {
     table
       .integer('classes')
@@ -12,7 +12,7 @@ exports.up = async function (knex: Knex): Promise<unknown> {
   })
 }
 
-exports.down = async function (knex: Knex): Promise<unknown> {
+exports.down = async function (knex: Knex): Promise<void> {
   return knex.schema.table('plans', table => {
     table.dropColumn('classes')
     table.dropColumn('feature')

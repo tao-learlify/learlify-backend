@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 
-exports.up = async function (knex: Knex): Promise<unknown> {
+exports.up = async function (knex: Knex): Promise<void> {
   await knex('exams')
     .update({ url: 'https://dkmwdxc6g4lk7.cloudfront.net/exams/exam-01.json' })
     .where({ id: 1 })
@@ -33,7 +33,7 @@ exports.up = async function (knex: Knex): Promise<unknown> {
     .where({ id: 10 })
 }
 
-exports.down = async function (knex: Knex): Promise<unknown> {
+exports.down = async function (knex: Knex): Promise<void> {
   await knex('exams').update({ url: '' }).where({ id: 1 })
   await knex('exams').update({ url: '' }).where({ id: 2 })
   await knex('exams').update({ url: '' }).where({ id: 3 })

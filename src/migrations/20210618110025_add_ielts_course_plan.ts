@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
 
-exports.up = async (knex: Knex): Promise<unknown> => {
+exports.up = async (knex: Knex): Promise<void> => {
   const [model] = await knex('exam_models').where({ name: 'IELTS' })
 
   const [planId] = await knex('plans').insert({
@@ -22,7 +22,7 @@ exports.up = async (knex: Knex): Promise<unknown> => {
   })
 }
 
-exports.down = async (knex: Knex): Promise<unknown> => {
+exports.down = async (knex: Knex): Promise<void> => {
   const [plan] = await knex('plans').where({ name: 'Curso IELTS' })
 
   await knex('access').where({ planId: plan.id }).del()
