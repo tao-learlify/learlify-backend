@@ -1,38 +1,25 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Ejecutando migraciones en Railway..."
+echo "🚀 Ejecutando migraciones en Railway desde local..."
 echo ""
 
-# Verificar que Railway CLI esté instalado
-if ! command -v railway &> /dev/null; then
-    echo "❌ Error: Railway CLI no está instalado"
-    echo "📦 Instala con: brew install railway"
+# Verificar que el archivo .env.railway exista
+if [ ! -f ".env.railway" ]; then
+    echo "❌ Error: El archivo .env.railway no existe"
+    echo "📝 Crea el archivo con las credenciales de Railway:"
+    echo "   cp .env.example .env.railway"
+    echo "   # Luego edita .env.railway con las credenciales de Railway"
     exit 1
 fi
 
-# Verificar que el usuario esté autenticado
-if ! railway whoami &> /dev/null; then
-    echo "❌ Error: No estás autenticado en Railway"
-    echo "🔐 Ejecuta: railway login"
-    exit 1
-fi
-
-# Verificar que el proyecto esté vinculado
-if [ ! -f ".railway/railway.json" ]; then
-    echo "❌ Error: Este proyecto no está vinculado a Railway"
-    echo "🔗 Ejecuta: railway link"
-    exit 1
-fi
-
-echo "✅ Railway CLI configurado correctamente"
-echo "📊 Proyecto vinculado"
-echo ""
-echo "🔄 Ejecutando migraciones..."
+echo "✅ Archivo .env.railway encontrado"
+echo "🔄 Ejecutando migraciones usando credenciales de Railway..."
 echo ""
 
-# Ejecutar migraciones en Railway
-railway run npm run migrate
+# Exportar las variables del archivo .env.railway y ejecutar migraciones
+export DOTENV_CONFIG_PATH=.env.railway
+npm run migrate
 
 echo ""
-echo "✅ Migraciones completadas exitosamente"
+echo "✅ Migraciones completadas exitosamente en Railway"
