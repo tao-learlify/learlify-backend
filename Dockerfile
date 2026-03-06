@@ -14,12 +14,13 @@ COPY .babelrc ./
 
 RUN npm ci
 
-# Copiar el código fuente
+# Copiar el código fuente y archivos necesarios
 COPY src/ ./src/
+COPY tsconfig.json ./
 
 # Compilar: los alias (api/, utils/, etc.) se resuelven a paths relativos
 # gracias a babel-plugin-module-resolver, por lo que dist/ es autónomo
-RUN npx babel src --out-dir dist --copy-files
+RUN npx babel src --out-dir dist --extensions '.js,.ts' --copy-files
 
 
 # ─────────────────────────────────────────────────────────────────────────────
