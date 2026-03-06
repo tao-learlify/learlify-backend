@@ -45,7 +45,10 @@ import ChatGateway from 'gateways/modules/chat'
 import rootMiddleware from 'middlewares/rootMiddlware'
 import root from 'config/root'
 
-dotenv.config()
+// Solo cargar .env en desarrollo - Railway inyecta variables directamente
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config()
+}
 
 /**
  * @see https://expressjs.com/

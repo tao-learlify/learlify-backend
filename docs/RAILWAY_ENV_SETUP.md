@@ -1,33 +1,42 @@
 # Configuración de Variables de Entorno para Railway
 
-Este proyecto incluye diferentes archivos de configuración de entorno para facilitar el desarrollo y despliegue.
+## ⚠️ IMPORTANTE: Configuración de Railway
 
-## 📁 Archivos de Entorno
+Railway **NO usa archivos `.env`**. Las variables de entorno deben configurarse directamente en la plataforma.
 
-- **`.env`** - Configuración local (no incluido en git)
-- **`.env.development`** - Configuración para desarrollo con Railway MySQL (no incluido en git)
-- **`.env.railway`** - Configuración para producción en Railway (no incluido en git)
-- **`.env.example`** - Plantilla con todas las variables necesarias (incluido en git)
-
-## 🚀 Configuración para Railway
-
-### Opción 1: Variables de Entorno en Railway UI
+## 🗄️ Paso 1: Crear Servicio MySQL en Railway
 
 1. Ve a tu proyecto en Railway
-2. Selecciona tu servicio
-3. Ve a la pestaña **Variables**
+2. Click en **"+ New"** → **"Database"** → **"Add MySQL"**
+3. Railway creará automáticamente un servicio MySQL con estas variables:
+   - `MYSQLHOST`
+   - `MYSQLPORT`
+   - `MYSQLUSER`
+   - `MYSQLPASSWORD`
+   - `MYSQLDATABASE`
+
+## 🔗 Paso 2: Configurar Variables en tu Servicio de Aplicación
+
+1. Ve a tu servicio de aplicación (learlify-backend)
+2. Pestaña **"Variables"**
+3. Click en **"+ New Variable"** o **"Raw Editor"**
 4. Agrega las siguientes variables:
 
-```bash
-# Database (Railway automáticamente configura estas si usas su MySQL)
-DB_HOST=${{MYSQLHOST}}
-DB_PORT=${{MYSQLPORT}}
-DB_USER=${{MYSQLUSER}}
-DB_PASSWORD=${{MYSQLPASSWORD}}
-DB_NAME=${{MYSQLDATABASE}}
-DB_CLIENT=mysql2
+### Variables de Base de Datos (usando referencias de Railway)
 
-# Application
+```bash
+# IMPORTANTE: Usa referencias a las variables del servicio MySQL
+DB_HOST=${{MySQL.MYSQLHOST}}
+DB_PORT=${{MySQL.MYSQLPORT}}
+DB_USER=${{MySQL.MYSQLUSER}}
+DB_PASSWORD=${{MySQL.MYSQLPASSWORD}}
+DB_NAME=${{MySQL.MYSQLDATABASE}}
+DB_CLIENT=mysql2
+```
+
+> **Nota**: Reemplaza `MySQL` con el nombre exacto de tu servicio MySQL en Railway.
+
+### Variables de Aplicación
 NODE_ENV=production
 HOST=0.0.0.0
 PORT=3100

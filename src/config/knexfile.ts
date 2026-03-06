@@ -10,11 +10,12 @@ type MysqlFieldLike = {
 
 type MysqlNextLike = () => unknown
 
-// Siempre apuntar al .env en la raíz del proyecto
-const dotenvPath =
-  process.env.DOTENV_CONFIG_PATH || path.resolve(__dirname, '../../.env')
-
-dotenv.config({ path: dotenvPath })
+// Solo cargar .env en desarrollo - Railway inyecta variables directamente
+if (process.env.NODE_ENV !== 'production') {
+  const dotenvPath =
+    process.env.DOTENV_CONFIG_PATH || path.resolve(__dirname, '../../.env')
+  dotenv.config({ path: dotenvPath })
+}
 
 const connection = {
   port: process.env.DB_PORT,
