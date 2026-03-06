@@ -22,6 +22,26 @@
       {
         "root": ["./src"],
         "alias": {
+          "api": "./src/api",
+          "config": "./src/config",
+          "utils": "./src/utils",
+          "middlewares": "./src/middlewares",
+          "metadata": "./src/metadata",
+          "common": "./src/common",
+          "gateways": "./src/gateways",
+          "tasks": "./src/tasks",
+          "lib": "./src/lib",
+          "decorators": "./src/decorators",
+          "exceptions": "./src/exceptions",
+          "functions": "./src/functions",
+          "modules": "./src/modules",
+          "@types": "./src/@types",
+          "pipe": "./src/pipe",
+          "validation": "./src/validation",
+          "router": "./src/router",
+          "constants": "./src/constants",
+          "core": "./src/core",
+          "scripts": "./src/scripts",
           "@": "./@",
           "underscore": "lodash"
         }

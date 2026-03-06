@@ -9,3 +9,4 @@ backup.sql
 # Backups SQL de inicialización Docker (contienen datos sensibles)
 db/init/*.sql
 *coverage
+*dist
