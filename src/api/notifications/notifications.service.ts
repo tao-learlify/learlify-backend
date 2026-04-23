@@ -7,6 +7,7 @@ import { Logger } from 'api/logger'
 import { Socket } from 'modules'
 import { NOTIFICATION } from 'gateways/events'
 import { NotificationContext } from './notification.context'
+import { PushService } from 'api/push/push.service'
 import type {
   NotificationData,
   NotificationTypeRecord,
@@ -20,11 +21,13 @@ class NotificationsService {
   private readonly _pagesize: number
   private usersService: UsersService
   private notificationTypesService: NotificationTypesService
+  private pushService: PushService
   private logger: typeof Logger.Service
 
   constructor() {
     this.usersService = new UsersService()
     this.notificationTypesService = new NotificationTypesService()
+    this.pushService = new PushService()
     this.logger = Logger.Service
     this._relationships = { notificationType: true }
     this._pagesize = 10
@@ -51,6 +54,14 @@ class NotificationsService {
       .withGraphFetched(this._relationships)
 
     stream.socket.to(user.email).emit(NOTIFICATION, notification)
+
+    // Also deliver via Web Push for PWA / offline users
+    this.pushService.send({
+      userId: data.userId,
+      title: 'AptisGo',
+      body: data.message ?? 'You have a new notification.',
+      url: '/'
+    }).catch((err) => this.logger.error('[push] Failed to send push notification', err))
 
     return notification
   }

@@ -18,6 +18,7 @@ import Meetings from 'api/meetings/meetings.routes'
 import Models from 'api/models/models.routes'
 import Notifications from 'api/notifications/notifications.routes'
 import Packages from 'api/packages/packages.routes'
+import Push from 'api/push/push.routes'
 import Plans from 'api/plans/plans.routes'
 import Progress from 'api/progress/progress.routes'
 import Reports from 'api/reports/report.routes'
@@ -47,6 +48,7 @@ const controllers = new ApplicationInterfaceService({
     Models,
     Notifications,
     Packages,
+    Push,
     Plans,
     Progress,
     Reports,

@@ -41,6 +41,10 @@ const envSchema = z.object({
   SSL_CERT: z.string().optional(),
   SSL_SECRET: z.string().optional(),
   USE_WIRELESS_CONFIG: z.string().optional(),
+
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_CONTACT_EMAIL: z.string().email().optional().default('support@learlify.com'),
 })
 
 export type Env = z.infer<typeof envSchema>
