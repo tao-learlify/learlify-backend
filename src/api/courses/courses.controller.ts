@@ -8,8 +8,7 @@ import { PlansService } from 'api/plans/plans.service'
 import {
   ConflictException,
   BadRequestException,
-  NotFoundException,
-  PaymentException
+  NotFoundException
 } from 'exceptions'
 import { ModelsService } from 'api/models/models.service'
 import { AmazonWebServices } from 'api/aws/aws.service'
@@ -44,53 +43,133 @@ class CoursesController {
     this.logger = Logger.Service
   }
 
+  /**
+   * Obtiene todas las secciones del advance con su progreso
+   * Retorna EXACTAMENTE 15 unidades ordenadas (1-15)
+   * Rellena con unidades vacías si faltan
+   */
+  private getAllSectionsWithProgress(advance: Record<string, unknown>): Array<{
+    sectionIndex: number
+    xp: number
+    completed: boolean
+    completedAt: string | null
+    lastAccessed: boolean
+    lastAccessedAt: string | null
+  }> {
+    const content = (advance.content as Record<string, unknown>) || {}
+    const TOTAL_SECTIONS = 15
+    
+    // Encuentra la sección actual (marcada con "last": true) - máximo una
+    let currentSectionIndex = -1
+    for (const [key, value] of Object.entries(content)) {
+      const val = value as Record<string, unknown> | undefined
+      if (val?.last === true) {
+        currentSectionIndex = parseInt(key, 10)
+        break
+      }
+    }
+
+    // Construye mapa de secciones (1-15)
+    const unitsMap: Record<number, {
+      sectionIndex: number
+      xp: number
+      completed: boolean
+      completedAt: string | null
+      lastAccessed: boolean
+      lastAccessedAt: string | null
+    }> = {}
+
+    // Procesa secciones existentes
+    for (let i = 1; i <= TOTAL_SECTIONS; i++) {
+      const sectionData = (content[i.toString()] as Record<string, unknown>) || {}
+      const isCurrentSection = i === currentSectionIndex
+      const isCompleted = sectionData.completed === true
+      const xpValue = typeof sectionData.general === 'number' ? sectionData.general : 0
+
+      unitsMap[i] = {
+        sectionIndex: i,
+        xp: xpValue,
+        completed: isCompleted,
+        completedAt: isCompleted ? ((advance.updatedAt as string) || (advance.createdAt as string)) : null,
+        lastAccessed: isCurrentSection,
+        lastAccessedAt: isCurrentSection ? ((advance.updatedAt as string) || (advance.createdAt as string)) : null
+      }
+    }
+
+    // Retorna array ordenado
+    return Array.from({ length: TOTAL_SECTIONS }, (_, i) => unitsMap[i + 1])
+  }
+
   @Bind
   async getAll(req: Request, res: Response): Promise<Response> {
     const query = req.query as Record<string, unknown>
+    const user = req.user as Record<string, unknown> | undefined
 
-    const user = req.user!
+    if (!user || typeof user.id !== 'number') {
+      throw new BadRequestException('User not found')
+    }
 
     const model = await this.models.getOne({
       name: query.model
     })
 
     if (model) {
-      const courses = await this.courses.getAll(model.name, user) as unknown as Record<string, unknown>[]
+      const courses = await this.courses.getAll(model.name as string, { id: user.id }) as unknown as Record<string, unknown>[]
 
       const isSubscribed = await this.packages.getOne({
         access: 'COURSES',
         isActive: true,
         userId: user.id,
-        modelId: model.id
+        modelId: (model as unknown as Record<string, unknown>).id as number
       })
 
       const [course] = courses
 
       if ((isSubscribed as unknown as Record<string, unknown>)?.isActive && (course.advances as unknown[]).length === 0) {
-
         const content = await (this.advance as unknown as { create(data: unknown): Promise<unknown> }).create({
           content: {},
-          courseId: course.id as number,
-          userId: user.id
+          courseId: (course.id as number),
+          userId: (user.id as number)
         })
 
         ;(course.advances as unknown[]).push(content)
       }
 
-      if (isSubscribed || query.demo === true) {
-        const advance = courses.reduce((pv: unknown[], cv) => [...pv, ...(cv.advances as unknown[])], [])
+      // TODO: Temporarily disabled payment check for development
+      // Restore when payment system is ready
+      // if (isSubscribed || query.demo === true) {
+      
+      // Obtén todas las secciones con progreso
+      const units = (courses as Record<string, unknown>[])
+        .flatMap((c: Record<string, unknown>) => 
+          (c.advances as Record<string, unknown>[]).flatMap((adv: Record<string, unknown>) => 
+            this.getAllSectionsWithProgress(adv)
+          )
+        )
 
-        return res.json({
-          message: 'Courses Obtained Successfully',
-          response: {
-            advance,
-            courses
-          },
-          statusCode: 200
-        })
-      }
+      // Remove advances from courses (avoid redundancy)
+      const cleanedCourses = (courses as Record<string, unknown>[]).map((course: Record<string, unknown>) => {
+        const cleaned = { ...course }
+        // Remove the advances array to avoid duplication
+        delete cleaned.advances
+        // Add totalSections metadata
+        if (units.length > 0) {
+          cleaned.totalSections = units.length
+        }
+        return cleaned
+      })
 
-      throw new PaymentException()
+      return res.json({
+        message: 'Courses Obtained Successfully',
+        response: {
+          units,
+          courses: cleanedCourses
+        },
+        statusCode: 200
+      })
+      // }
+
+      // throw new PaymentException()
     }
 
     throw new NotFoundException()
@@ -99,6 +178,11 @@ class CoursesController {
   @Bind
   async inscription(req: Request, res: Response): Promise<Response> {
     const { courseId } = req.body as { courseId: number }
+    const user = req.user as Record<string, unknown> | undefined
+
+    if (!user) {
+      throw new BadRequestException('User not found')
+    }
 
     const course = await this.courses.getOne({ id: courseId })
 
@@ -111,8 +195,8 @@ class CoursesController {
     }
 
     const advance = await this.advance.getOne({
-      userId: req.user!.id,
-      courseId: course.id
+      userId: (user.id as number),
+      courseId: course.id as number
     })
 
     if (advance) {
@@ -120,8 +204,8 @@ class CoursesController {
     }
 
     const ticket = await (this.advance as unknown as { create(data: unknown): Promise<unknown> }).create({
-      userId: req.user!.id,
-      courseId: course.id,
+      userId: (user.id as number),
+      courseId: (course.id as number),
       content: {}
     })
 
@@ -131,9 +215,15 @@ class CoursesController {
       throw new ConflictException()
     }
 
+    // Get all sections with progress
+    const units = this.getAllSectionsWithProgress(ticket as Record<string, unknown>)
+
     return res.status(201).json({
       message: 'Inscription successfully created',
-      response: ticket,
+      response: {
+        units,
+        advanceId: (ticket as Record<string, unknown>).id
+      },
       statusCode: 201
     })
   }
