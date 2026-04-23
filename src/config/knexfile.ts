@@ -24,7 +24,7 @@ const connection = {
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   charset: 'utf8',
-  timezone: 'UTC',
+  timezone: '+00:00',
   typeCast(field: MysqlFieldLike, next: MysqlNextLike): unknown {
     if (field.type === 'TINY' && field.length === 1) {
       const value = field.string()
