@@ -1,6 +1,17 @@
 import { checkSchema } from 'express-validator'
 
 export class AdvancePipe {
+  get getAll(): ReturnType<typeof checkSchema> {
+    return checkSchema({
+      courseId: {
+        in: 'query',
+        isNumeric: true,
+        toInt: true,
+        errorMessage: 'courseId is required and must be numeric'
+      }
+    })
+  }
+
   get create(): ReturnType<typeof checkSchema> {
     return checkSchema({
       courseId: {

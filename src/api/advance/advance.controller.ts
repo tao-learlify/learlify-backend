@@ -1,10 +1,15 @@
 import { AdvanceService } from './advance.service'
 import { PlansService } from 'api/plans/plans.service'
 import { PackagesService } from 'api/packages/packages.service'
-import { NotFoundException, PaymentException } from 'exceptions'
+import { NotFoundException, ForbiddenException } from 'exceptions'
 import { Logger } from 'api/logger'
+import { Bind } from 'decorators'
 import feature from 'api/access/access.features'
 import type { Request, Response } from 'express'
+
+const TOTAL_UNITS = 15
+const FREE_UNITS: number[] = [1]
+const ALL_UNITS: number[] = Array.from({ length: TOTAL_UNITS }, (_, i) => i + 1)
 
 export class AdvanceController {
   private defaultContent: Record<string, unknown>
@@ -21,15 +26,16 @@ export class AdvanceController {
     this.logger = Logger.Service
   }
 
+  @Bind
   async create(req: Request, res: Response): Promise<Response> {
-    const user = req.user!
+    const user = req.user
 
     const data = req.body
 
     const advance = await this.advanceService.create({
       ...data,
       content: this.defaultContent,
-      userId: user.id
+      userId: user?.id as number
     })
 
     return res.json({
@@ -39,47 +45,55 @@ export class AdvanceController {
     })
   }
 
+  @Bind
   async getAll(req: Request, res: Response): Promise<Response> {
-    const user = req.user!
+    const user = req.user
 
     const advance = await this.advanceService.getOne({
       courseId: req.query.courseId as unknown as number,
-      userId: user.id
+      userId: user?.id as number
     })
 
     const isSubscribed = await this.packagesService.getSubscriptions(
       {
         isActive: true,
-        userId: user.id
+        userId: user?.id as number
       },
       [feature.COURSES]
     )
 
-    if (isSubscribed) {
-      if (advance) {
-        return res.status(200).json({
-          message: 'Advance obtained succesfully',
-          response: advance,
-          statusCode: 200
-        })
-      }
+    const unlockedUnits = isSubscribed ? ALL_UNITS : FREE_UNITS
 
-      throw new NotFoundException(res.__('errors.Advance Not Found'))
-    }
-
-    this.logger.warn('Requires Payment')
-
-    throw new PaymentException()
+    return res.status(200).json({
+      message: 'Advance obtained succesfully',
+      response: advance ? { ...advance, unlockedUnits } : { unlockedUnits },
+      statusCode: 200
+    })
   }
 
+  @Bind
   async updateOne(req: Request, res: Response): Promise<Response> {
-    const user = req.user!
+    const user = req.user
 
     const data = req.body
 
+    const isSubscribed = await this.packagesService.getSubscriptions(
+      {
+        isActive: true,
+        userId: user?.id as number
+      },
+      [feature.COURSES]
+    )
+
+    const unlockedUnits = isSubscribed ? ALL_UNITS : FREE_UNITS
+
+    if (!unlockedUnits.includes(Number(data.unit))) {
+      throw new ForbiddenException(res.__('errors.Unit Not Unlocked'))
+    }
+
     const advance = await this.advanceService.getOne({
+      userId: user?.id as number,
       courseId: data.courseId,
-      userId: user.id
     })
 
     if (advance) {
