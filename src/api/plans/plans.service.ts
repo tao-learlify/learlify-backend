@@ -91,6 +91,57 @@ class PlansService {
       .withGraphJoined(this.relation)
   }
 
+  async getCatalog({ modelId }: { modelId?: number }) {
+    const query = Plan.query().where({ available: true })
+
+    if (modelId) {
+      query.where({ modelId })
+    }
+
+    const plans = await query.select([
+      'id', 'name', 'description', 'price', 'writing', 'speaking', 'feature', 'modelId'
+    ])
+
+    return (plans as unknown as Array<Record<string, unknown>>).map((plan, index) => {
+      const price = Number(plan.price) || 0
+      const yearlyPrice = Math.round(price * 10) // 2 months free
+
+      return {
+        id: plan.id,
+        code: String(plan.name).toLowerCase().replace(/\s+/g, '_'),
+        name: plan.name,
+        description: plan.description || null,
+        includes_course: plan.feature === 'COURSES',
+        included_exams: null,
+        included_speaking_reviews: Number(plan.speaking) || 0,
+        included_writing_reviews: Number(plan.writing) || 0,
+        sort_order: index,
+        prices: [
+          {
+            id: (plan.id as number) * 10 + 1,
+            plan_id: plan.id,
+            billing_cycle: 'monthly',
+            currency: 'EUR',
+            base_price: price,
+            discount_percentage: 0,
+            final_price: price,
+            active: true
+          },
+          {
+            id: (plan.id as number) * 10 + 2,
+            plan_id: plan.id,
+            billing_cycle: 'yearly',
+            currency: 'EUR',
+            base_price: yearlyPrice,
+            discount_percentage: 17,
+            final_price: Math.round(yearlyPrice * 0.83),
+            active: true
+          }
+        ]
+      }
+    })
+  }
+
   getOne(plan: PlanSource | null, id?: number) {
     if (plan === null) {
       return Plan.query().findById(id as number)
