@@ -16,6 +16,7 @@ import './config/db'
 import stripeWebhook from 'api/stripe/stripe.webhook'
 import healthRouter from 'api/health/health.routes'
 import metricsRouter from 'api/metrics/metrics.routes'
+import docsRouter from 'api/docs/docs.routes'
 
 import { Scheduler } from 'common/cron'
 import { WebSockets } from 'gateways/socket'
@@ -78,6 +79,7 @@ app.set('host', config.APP_HOST)
 app.use(stripeWebhook)
 app.use(healthRouter)
 app.use(metricsRouter)
+app.use(docsRouter)
 
 rootMiddleware.forEach(middleware => {
   if (process.env.NODE_ENV !== MODE.test) {
