@@ -1,0 +1,3285 @@
+openapi: 3.0.3
+
+info:
+  title: Learlify API
+  description: |
+    REST API for the Learlify / AptisGo learning platform.
+
+    ## Authentication
+    Most endpoints require a **Bearer JWT** token in the `Authorization` header.
+    Obtain a token via `POST /auth/login`, `POST /auth/social/google`, or `POST /auth/social/facebook`.
+
+    ## Roles
+    | Role    | Description |
+    |---------|-------------|
+    | `USER`  | Regular student |
+    | `TEACHER` | Evaluator / instructor |
+    | `ADMIN` | Full platform access |
+
+    ## Response envelope
+    All responses follow a consistent envelope:
+    ```json
+    {
+      "message": "Human-readable description",
+      "response": {},
+      "statusCode": 200
+    }
+    ```
+    Paginated responses include an additional `pagination` object.
+
+    ## Error format
+    ```json
+    {
+      "message": "Error description",
+      "statusCode": 400
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Learlify Team
+
+servers:
+  - url: https://api.learlify.com/api/v1
+    description: Production
+  - url: http://localhost:3100/api/v1
+    description: Local development
+
+tags:
+  - name: Authentication
+    description: Registration, login, token management
+  - name: Users
+    description: User profile management
+  - name: Plans
+    description: Subscription plans catalog
+  - name: Packages
+    description: User subscriptions and Stripe payments
+  - name: Courses
+    description: Course enrollment
+  - name: Evaluations
+    description: Teacher-reviewed writing and speaking evaluations
+  - name: Latest Evaluations
+    description: Most recent evaluation snapshots per category
+  - name: Exams
+    description: Exam definitions and content
+  - name: Progress
+    description: Per-exam user progress tracking
+  - name: Classes
+    description: Live tutoring session management
+  - name: Schedule
+    description: Teacher availability slots
+  - name: Meetings
+    description: Twilio video-call tokens
+  - name: Notifications
+    description: In-app notification center
+  - name: Access
+    description: Plan → resource access control (Admin)
+  - name: Admin
+    description: Administrative user management
+  - name: Stats
+    description: Aggregated performance statistics
+  - name: Advance
+    description: Course progression records
+  - name: Categories
+    description: Exam categories (Writing, Speaking, Reading, …)
+  - name: Models
+    description: Exam model types (APTIS, IELTS, …)
+  - name: Languages
+    description: Supported UI languages
+  - name: Gifts
+    description: Plan gift creation and redemption
+  - name: Feedback
+    description: User feedback
+  - name: Reports
+    description: Quality and issue reports
+  - name: Roles
+    description: User roles catalog
+  - name: AWS
+    description: S3 file storage operations
+  - name: YouTube
+    description: YouTube video resources
+  - name: System
+    description: Health, metrics, and webhooks
+
+# ---------------------------------------------------------------------------
+# Security scheme
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/login
+
+  # -------------------------------------------------------------------------
+  # Reusable schemas
+  # -------------------------------------------------------------------------
+  schemas:
+
+    # ── Envelope wrappers ─────────────────────────────────────────────────
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Operation completed successfully
+        response:
+          description: Payload – object or array depending on the endpoint
+        statusCode:
+          type: integer
+          example: 200
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 47
+        pages:
+          type: integer
+          example: 5
+
+    PaginatedResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            pagination:
+              $ref: '#/components/schemas/PaginationMeta'
+
+    ErrorResponse:
+      type: object
+      required: [message, statusCode]
+      properties:
+        message:
+          type: string
+          example: Resource not found
+        statusCode:
+          type: integer
+          example: 404
+
+    TokenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        response:
+          type: object
+          properties:
+            token:
+              type: string
+              description: Signed JWT (expires in 30 days)
+              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        statusCode:
+          type: integer
+          example: 200
+
+    # ── Domain models ────────────────────────────────────────────────────
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        name:
+          type: string
+          enum: [ADMIN, TEACHER, USER]
+          example: USER
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://cdn.example.com/avatar.jpg
+        isVerified:
+          type: boolean
+          example: true
+        lang:
+          type: string
+          example: en
+        lastLogin:
+          type: string
+          format: date
+          example: "2026-05-01"
+        tour:
+          type: string
+          description: JSON string of completed onboarding steps
+          example: '{"dashboard":true,"exams":false}'
+        stripeCustomerId:
+          type: string
+          nullable: true
+          example: cus_Nffrfeq1234
+        googleId:
+          type: string
+          nullable: true
+        facebookId:
+          type: string
+          nullable: true
+        roleId:
+          type: integer
+          example: 2
+        modelId:
+          type: integer
+          nullable: true
+          example: 1
+        role:
+          $ref: '#/components/schemas/Role'
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: GO
+        available:
+          type: boolean
+          example: true
+        classes:
+          type: integer
+          example: 2
+        description:
+          type: string
+          example: Basic plan with 2 classes and writing feedback
+        currency:
+          type: string
+          example: EUR
+        writing:
+          type: integer
+          example: 3
+        speaking:
+          type: integer
+          example: 3
+        price:
+          type: number
+          format: float
+          example: 29.99
+        feature:
+          type: string
+          enum: [COURSES, CLASSES, EXAMS]
+          example: EXAMS
+        modelId:
+          type: integer
+          example: 1
+
+    Package:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        userId:
+          type: integer
+          example: 42
+        planId:
+          type: integer
+          example: 3
+        total:
+          type: number
+          format: float
+          example: 29.99
+        isActive:
+          type: boolean
+          example: true
+        expirationDate:
+          type: string
+          format: date
+          example: "2026-11-01"
+        stripeChargeId:
+          type: string
+          nullable: true
+          example: ch_1N2345abcdef
+        speakings:
+          type: integer
+          example: 3
+        writings:
+          type: integer
+          example: 3
+        classes:
+          type: integer
+          example: 2
+        isNotified:
+          type: boolean
+          example: false
+
+    Exam:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 7
+        name:
+          type: string
+          example: APTIS B2 General
+        categoryId:
+          type: integer
+          example: 2
+        modelId:
+          type: integer
+          example: 1
+        type:
+          type: string
+          example: full
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          enum: [Writing, Speaking, Reading, Listening, Grammar & Vocabulary]
+          example: Writing
+
+    Evaluation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 55
+        examId:
+          type: integer
+          example: 7
+        userId:
+          type: integer
+          example: 42
+        teacherId:
+          type: integer
+          nullable: true
+          example: 12
+        progressId:
+          type: integer
+          example: 88
+        categoryId:
+          type: integer
+          example: 1
+        data:
+          type: object
+          description: JSON payload with the student submission (feedback, cloudStorageRef, etc.)
+        comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluationComment'
+        status:
+          type: string
+          enum: [PENDING, TAKEN, EVALUATED]
+          example: PENDING
+        score:
+          type: array
+          items: {}
+          description: Nested score arrays populated when the evaluation is reviewed
+
+    EvaluationComment:
+      type: object
+      required: [html, text]
+      properties:
+        html:
+          type: string
+          example: "<div>Great structure, but work on cohesion.</div>"
+        text:
+          type: string
+          example: "Great structure, but work on cohesion."
+
+    LatestEvaluation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 201
+        userId:
+          type: integer
+          example: 42
+        categoryId:
+          type: integer
+          example: 2
+        data:
+          type: object
+          description: Latest evaluation snapshot
+
+    Progress:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 88
+        userId:
+          type: integer
+          example: 42
+        examId:
+          type: integer
+          example: 7
+        currentScore:
+          type: number
+          example: 72.5
+        data:
+          type: object
+          description: Full progress map keyed by category name
+          example:
+            uuid: "a1b2-c3d4"
+            Writing:
+              feedback: []
+              lastIndex: 2
+            Speaking:
+              cloudStorageRef: []
+              lastIndex: 0
+            Reading:
+              score: 15
+              lastIndex: 5
+              feedback: []
+              points: 30
+
+    Class:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 30
+        userId:
+          type: integer
+          example: 42
+        classType:
+          type: string
+          example: speaking
+        startTime:
+          type: string
+          format: date-time
+          example: "2026-05-10T10:00:00Z"
+        endTime:
+          type: string
+          format: date-time
+          example: "2026-05-10T11:00:00Z"
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+          example: confirmed
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 15
+        userId:
+          type: integer
+          example: 12
+        startDate:
+          type: string
+          format: date-time
+          example: "2026-05-10T09:00:00Z"
+        endDate:
+          type: string
+          format: date-time
+          example: "2026-05-10T18:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 500
+        senderId:
+          type: integer
+          nullable: true
+          example: 1
+        userId:
+          type: integer
+          example: 42
+        message:
+          type: string
+          example: "Your evaluation has been reviewed."
+        read:
+          type: boolean
+          example: false
+        deleted:
+          type: boolean
+          example: false
+        type:
+          type: integer
+          description: NotificationType id
+          example: 2
+
+    Access:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 8
+        planId:
+          type: integer
+          example: 3
+        courseId:
+          type: integer
+          nullable: true
+          example: 1
+        classId:
+          type: integer
+          nullable: true
+        examId:
+          type: integer
+          nullable: true
+          example: 7
+
+    Language:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: English
+        code:
+          type: string
+          example: en
+
+    Course:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: APTIS B1
+        description:
+          type: string
+          example: Complete preparation course for APTIS B1 level
+
+    Advance:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 11
+        userId:
+          type: integer
+          example: 42
+        courseId:
+          type: integer
+          example: 1
+        currentLevel:
+          type: string
+          example: unit_3
+        progress:
+          type: number
+          format: float
+          example: 45.0
+
+    Gift:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 9
+        planId:
+          type: integer
+          example: 3
+        gifter:
+          type: integer
+          example: 42
+        receiver:
+          type: integer
+          nullable: true
+
+    Stats:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 300
+        userId:
+          type: integer
+          example: 42
+        evaluationId:
+          type: integer
+          nullable: true
+        examId:
+          type: integer
+          example: 7
+        data:
+          type: object
+          description: Computed score breakdown
+
+    ExamModel:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          enum: [APTIS, IELTS]
+          example: APTIS
+        data:
+          type: object
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+
+  # ==========================================================================
+  # AUTH
+  # ==========================================================================
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      description: Creates a user account and sends an email verification link.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, firstName, lastName, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane.doe@example.com
+                firstName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  example: Jane
+                lastName:
+                  type: string
+                  minLength: 2
+                  maxLength: 50
+                  example: Doe
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  maxLength: 50
+                  example: "S3cur3P@ss!"
+      responses:
+        "201":
+          description: Account created – returns a JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+              example:
+                message: Register completed
+                response:
+                  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                statusCode: 201
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                message: User already exists
+                statusCode: 409
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane.doe@example.com
+                password:
+                  type: string
+                  format: password
+                  example: "S3cur3P@ss!"
+      responses:
+        "200":
+          description: Authenticated – returns JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "400":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/social/google:
+    post:
+      tags: [Authentication]
+      summary: Sign in / sign up with Google
+      description: Creates or updates the user account using the Google token payload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, googleId, givenName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane@gmail.com
+                googleId:
+                  type: string
+                  example: "108204925612345678901"
+                givenName:
+                  type: string
+                  example: Jane
+                familyName:
+                  type: string
+                  example: Doe
+                imageUrl:
+                  type: string
+                  format: uri
+                  example: https://lh3.googleusercontent.com/photo.jpg
+      responses:
+        "200":
+          description: Existing user logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "201":
+          description: New user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /auth/social/facebook:
+    post:
+      tags: [Authentication]
+      summary: Sign in / sign up with Facebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, facebookId, givenName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: jane@facebook.com
+                facebookId:
+                  type: string
+                  example: "1234567890123456"
+                givenName:
+                  type: string
+                  example: Jane
+                familyName:
+                  type: string
+                  example: Doe
+                imageUrl:
+                  type: string
+                  format: uri
+      responses:
+        "200":
+          description: Existing user logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "201":
+          description: New user created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /auth/verify:
+    put:
+      tags: [Authentication]
+      summary: Verify email address
+      parameters:
+        - name: code
+          in: query
+          required: true
+          description: JWT-encoded verification code sent by email
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Account verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/forgot:
+    post:
+      tags: [Authentication]
+      summary: Request password reset email
+      description: Always returns 200 to prevent email enumeration.
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Reset email sent (or silently ignored if not found)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: object
+                    properties:
+                      details:
+                        type: object
+                        properties:
+                          to:
+                            type: string
+                          date:
+                            type: string
+                      sended:
+                        type: boolean
+                        example: true
+                  statusCode:
+                    type: integer
+                    example: 200
+
+  /auth/refresh-token:
+    post:
+      tags: [Authentication]
+      summary: Refresh JWT token
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: Current (possibly near-expiry) JWT
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        "200":
+          description: New token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "403":
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/reset:
+    put:
+      tags: [Authentication]
+      summary: Reset password using email code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code, password]
+              properties:
+                code:
+                  type: string
+                  format: jwt
+                  description: Reset code from the password-reset email
+                password:
+                  type: string
+                  format: password
+                  minLength: 6
+                  example: "N3wP@ssword!"
+      responses:
+        "201":
+          description: Password updated, new token returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "400":
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/demo:
+    get:
+      tags: [Authentication]
+      summary: Get demo user token
+      description: Returns a JWT for the pre-configured demo account (read-only).
+      responses:
+        "200":
+          description: Demo token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout (invalidate token)
+      description: Adds the current token to a Redis blocklist.
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+                  statusCode:
+                    type: integer
+                    example: 200
+
+  # ==========================================================================
+  # USERS
+  # ==========================================================================
+  /users:
+    get:
+      tags: [Users]
+      summary: List users (paginated)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          required: true
+          description: Filter by role name
+          schema:
+            type: string
+            enum: [ADMIN, TEACHER, USER]
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+        "404":
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Users]
+      summary: Update authenticated user profile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: Jane
+                lastName:
+                  type: string
+                  example: Smith
+                imageUrl:
+                  type: string
+                  format: uri
+                lang:
+                  type: string
+                  example: es
+                password:
+                  type: string
+                  format: password
+                  description: New password (requires currentPassword)
+                currentPassword:
+                  type: string
+                  format: password
+                  description: Required when changing password
+      responses:
+        "200":
+          description: Updated – new JWT returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "400":
+          description: Current password missing or wrong
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 42
+      responses:
+        "200":
+          description: User object
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/User'
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/tour:
+    put:
+      tags: [Users]
+      summary: Mark a tour step as completed
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draft]
+              properties:
+                draft:
+                  type: string
+                  description: Tour step key (e.g. "dashboard", "exams")
+                  example: dashboard
+      responses:
+        "200":
+          description: Tour step recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: object
+                    properties:
+                      completed:
+                        type: boolean
+                        example: true
+                  statusCode:
+                    type: integer
+                    example: 200
+
+  # ==========================================================================
+  # PLANS
+  # ==========================================================================
+  /plans/catalog:
+    get:
+      tags: [Plans]
+      summary: Get plan catalog (public)
+      parameters:
+        - name: modelId
+          in: query
+          schema:
+            type: integer
+          description: Filter by exam model ID
+      responses:
+        "200":
+          description: List of plans
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Plan'
+
+  /plans:
+    get:
+      tags: [Plans]
+      summary: Get available plans (with geo-pricing and offer logic)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: model
+          in: query
+          required: true
+          description: Exam model name
+          schema:
+            type: string
+            enum: [APTIS, IELTS]
+        - name: pricing
+          in: query
+          schema:
+            type: boolean
+          description: Return pricing-page plans
+        - name: offers
+          in: query
+          schema:
+            type: boolean
+          description: Return upsell offer plans based on active packages
+      responses:
+        "200":
+          description: Plans list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Plan'
+        "404":
+          description: Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Plans]
+      summary: Create a plan (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, price, currency, modelId]
+              properties:
+                name:
+                  type: string
+                  example: DIAMOND
+                price:
+                  type: number
+                  example: 59.99
+                currency:
+                  type: string
+                  example: EUR
+                classes:
+                  type: integer
+                  example: 4
+                writing:
+                  type: integer
+                  example: 5
+                speaking:
+                  type: integer
+                  example: 5
+                description:
+                  type: string
+                available:
+                  type: boolean
+                  default: true
+                feature:
+                  type: string
+                  enum: [COURSES, CLASSES, EXAMS]
+                modelId:
+                  type: integer
+                  example: 1
+      responses:
+        "200":
+          description: Plan created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Plan'
+
+    put:
+      tags: [Plans]
+      summary: Update a plan (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId:
+                  type: integer
+                  example: 3
+                price:
+                  type: number
+                  example: 34.99
+                available:
+                  type: boolean
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Plan updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Plan'
+        "404":
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /plans/{id}:
+    get:
+      tags: [Plans]
+      summary: Get plan by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 3
+      responses:
+        "200":
+          description: Plan object
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Plan'
+        "404":
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags: [Plans]
+      summary: Delete a plan (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Plan deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Plan has been deleted succesfully
+                  response:
+                    type: object
+                    properties:
+                      deleted:
+                        type: string
+                        example: "3"
+                  statusCode:
+                    type: integer
+                    example: 200
+        "404":
+          description: Plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # PACKAGES
+  # ==========================================================================
+  /packages:
+    get:
+      tags: [Packages]
+      summary: Get user packages
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: active
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+      responses:
+        "200":
+          description: Package list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Package'
+
+    post:
+      tags: [Packages]
+      summary: Purchase a package (Stripe payment)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: planId
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Plan to subscribe to
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [paymentMethodId]
+              properties:
+                paymentMethodId:
+                  type: string
+                  description: Stripe PaymentMethod ID
+                  example: pm_1N2345abcdef
+                requiresAction:
+                  type: boolean
+                  default: false
+                  description: True when 3DS confirmation is required
+                cancel:
+                  type: boolean
+                  default: false
+                  description: Cancel in-progress payment intent
+      responses:
+        "201":
+          description: Package created and payment processed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Package'
+        "402":
+          description: Payment required / subscription limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Packages]
+      summary: Submit writing or speaking exercise (deducts from package)
+      description: |
+        Updates progress with the submitted work and, if `needsRevision` is true,
+        deducts one credit from the active package and creates an evaluation record.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [writings, speakings]
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+            example: Writing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [progress]
+              properties:
+                progress:
+                  type: object
+                  required: [id, progressUpdated]
+                  properties:
+                    id:
+                      type: integer
+                      example: 88
+                    progressUpdated:
+                      type: object
+                      description: Updated progress data to persist
+                needsRevision:
+                  type: boolean
+                  default: false
+                  description: Whether to request teacher review
+      responses:
+        "200":
+          description: Progress updated without revision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "201":
+          description: Progress updated and evaluation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "402":
+          description: No active subscription credits available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /packages/assign:
+    post:
+      tags: [Packages]
+      summary: Assign package to user (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: planId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Package assigned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Package'
+        "404":
+          description: User or plan not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # COURSES
+  # ==========================================================================
+  /courses:
+    get:
+      tags: [Courses]
+      summary: Get enrolled courses for authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Course list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Course'
+
+    post:
+      tags: [Courses]
+      summary: Enroll in a course
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseId]
+              properties:
+                courseId:
+                  type: integer
+                  example: 1
+      responses:
+        "201":
+          description: Enrolled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # EVALUATIONS
+  # ==========================================================================
+  /evaluations/all:
+    get:
+      tags: [Evaluations]
+      summary: List evaluations (role-aware)
+      description: |
+        - **USER**: own evaluations for a given model, paginated (4 per page)
+        - **TEACHER** with `?own`: evaluations assigned to them, paginated (10/page)
+        - **ADMIN**: all evaluations with optional user filter
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: model
+          in: query
+          schema:
+            type: string
+            enum: [APTIS, IELTS]
+          description: Required for USER role
+        - name: own
+          in: query
+          schema:
+            type: boolean
+          description: TEACHER filter – only own evaluations
+        - name: user
+          in: query
+          schema:
+            type: integer
+          description: ADMIN / TEACHER filter – evaluations for specific user
+        - name: count
+          in: query
+          schema:
+            type: boolean
+          description: Return evaluation counts by category (TEACHER/ADMIN)
+      responses:
+        "200":
+          description: Paginated evaluation list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Evaluation'
+
+  /evaluations/{id}:
+    get:
+      tags: [Evaluations]
+      summary: Get evaluation by ID
+      description: Returns full evaluation with exam exercises and cloud storage URLs. Accessible by owner, assigned teacher, or admin.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 55
+      responses:
+        "200":
+          description: Evaluation with exercises
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Evaluation'
+        "404":
+          description: Evaluation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Evaluations]
+      summary: Review evaluation (Teacher/Admin)
+      description: |
+        - Without `score`: updates status (e.g. `TAKEN` to claim, `PENDING` to release).
+        - With `score + status=EVALUATED`: persists teacher scores and generates stats.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, TAKEN, EVALUATED]
+                  example: EVALUATED
+                score:
+                  type: array
+                  description: Nested score arrays matching the evaluation structure
+                  items: {}
+                comments:
+                  type: array
+                  description: Per-exercise teacher comments
+                  items:
+                    $ref: '#/components/schemas/EvaluationComment'
+      responses:
+        "200":
+          description: Evaluation reviewed and stats saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "201":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "400":
+          description: Invalid comment format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Evaluation already completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags: [Evaluations]
+      summary: Reopen a completed evaluation (Teacher/Admin)
+      description: Moves status from EVALUATED back to TAKEN.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status reset to TAKEN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "404":
+          description: Evaluation not found or not in EVALUATED status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # LATEST EVALUATIONS
+  # ==========================================================================
+  /latest/all:
+    get:
+      tags: [Latest Evaluations]
+      summary: Get all latest evaluation snapshots
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Latest evaluations
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/LatestEvaluation'
+
+  /latest/count:
+    get:
+      tags: [Latest Evaluations]
+      summary: Count latest evaluations
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Count value
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /latest/{id}:
+    get:
+      tags: [Latest Evaluations]
+      summary: Get latest evaluation by ID (owner only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Latest evaluation
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/LatestEvaluation'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # EXAMS
+  # ==========================================================================
+  /exams:
+    get:
+      tags: [Exams]
+      summary: List all exams
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Exam list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Exam'
+
+  /exams/{id}:
+    get:
+      tags: [Exams]
+      summary: Get exam by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Exam object
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Exam'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # PROGRESS
+  # ==========================================================================
+  /progress:
+    get:
+      tags: [Progress]
+      summary: Get user progress for an exam
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Progress record
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Progress'
+        "404":
+          description: No progress found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags: [Progress]
+      summary: Create a new progress record for an exam
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [examId]
+              properties:
+                examId:
+                  type: integer
+                  example: 7
+      responses:
+        "201":
+          description: Progress created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Progress'
+        "409":
+          description: Progress already exists for this exam
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Progress]
+      summary: Update progress for a category (with optional file uploads for speaking)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [id, key, uuid, lastIndex]
+              properties:
+                id:
+                  type: integer
+                  description: Progress record ID
+                  example: 88
+                key:
+                  type: string
+                  description: URL-encoded category name
+                  example: Writing
+                uuid:
+                  type: string
+                  description: Progress UUID for optimistic lock
+                  example: a1b2-c3d4
+                score:
+                  type: number
+                  example: 3
+                lastIndex:
+                  type: integer
+                  example: 2
+                points:
+                  type: number
+                  example: 10
+                feedback:
+                  type: array
+                  items: {}
+                  description: Text/audio feedback items
+      responses:
+        "201":
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "402":
+          description: No active package credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    patch:
+      tags: [Progress]
+      summary: Reset a category in a progress record
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: integer
+          description: Progress record ID
+        - name: category
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Category name to reset
+      responses:
+        "201":
+          description: Category reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "404":
+          description: Progress or category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # CLASSES
+  # ==========================================================================
+  /classes:
+    get:
+      tags: [Classes]
+      summary: Get class info for authenticated user
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Class record
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Class'
+
+    post:
+      tags: [Classes]
+      summary: Book a class
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [classType, startTime, endTime]
+              properties:
+                classType:
+                  type: string
+                  example: speaking
+                startTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-15T10:00:00Z"
+                endTime:
+                  type: string
+                  format: date-time
+                  example: "2026-05-15T11:00:00Z"
+      responses:
+        "201":
+          description: Class booked
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Class'
+
+  /classes/confirmed:
+    get:
+      tags: [Classes]
+      summary: Get confirmed upcoming classes
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Confirmed class list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Class'
+
+  /classes/history:
+    get:
+      tags: [Classes]
+      summary: Get past class history
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Historical class list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Class'
+
+  # ==========================================================================
+  # SCHEDULE
+  # ==========================================================================
+  /schedule:
+    get:
+      tags: [Schedule]
+      summary: Get teacher availability schedules
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Schedule list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Schedule'
+
+    post:
+      tags: [Schedule]
+      summary: Create a schedule slot (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, startDate, endDate]
+              properties:
+                userId:
+                  type: integer
+                  description: Teacher user ID
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+      responses:
+        "201":
+          description: Schedule created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Schedule'
+
+  /schedule/stream:
+    get:
+      tags: [Schedule]
+      summary: Stream early-access schedule slots
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Early schedule slots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /schedule/{id}:
+    delete:
+      tags: [Schedule]
+      summary: Delete a schedule slot (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Slot deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "404":
+          description: Slot not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # MEETINGS
+  # ==========================================================================
+  /meetings:
+    get:
+      tags: [Meetings]
+      summary: Get Twilio access token for a video room
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Twilio token
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: object
+                        properties:
+                          token:
+                            type: string
+                          roomName:
+                            type: string
+
+  /meetings/token:
+    get:
+      tags: [Meetings]
+      summary: Get Twilio test token
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Test token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /meetings/identity:
+    get:
+      tags: [Meetings]
+      summary: Get current meeting identity
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Identity object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # NOTIFICATIONS
+  # ==========================================================================
+  /notifications:
+    post:
+      tags: [Notifications]
+      summary: Create a notification (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, message, type]
+              properties:
+                senderId:
+                  type: integer
+                  nullable: true
+                userId:
+                  type: integer
+                  example: 42
+                message:
+                  type: string
+                  example: Your evaluation has been reviewed.
+                read:
+                  type: boolean
+                  default: false
+                deleted:
+                  type: boolean
+                  default: false
+                type:
+                  type: integer
+                  description: NotificationType ID
+                  example: 2
+      responses:
+        "200":
+          description: Notification created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Notification'
+
+    delete:
+      tags: [Notifications]
+      summary: Delete expired notifications (Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Expired notifications removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Expired notifications deleted successfully
+                  response:
+                    type: integer
+                    description: Number of deleted records
+                  statusCode:
+                    type: integer
+                    example: 200
+
+  /notifications/all:
+    get:
+      tags: [Notifications]
+      summary: Get notifications for authenticated user
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+          description: Page number for pagination
+        - name: unreads
+          in: query
+          schema:
+            type: boolean
+          description: Include unread count
+      responses:
+        "200":
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: object
+                        properties:
+                          notifications:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/Notification'
+                          unreads:
+                            type: integer
+                            example: 3
+
+  /notifications/all/read:
+    put:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      security:
+        - BearerAuth: []
+      responses:
+        "201":
+          description: All marked as read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /notifications/{id}:
+    get:
+      tags: [Notifications]
+      summary: Get notification by ID (owner only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification object
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Notification'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [Notifications]
+      summary: Update notification (owner only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                read:
+                  type: boolean
+                deleted:
+                  type: boolean
+      responses:
+        "200":
+          description: Notification updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # ACCESS
+  # ==========================================================================
+  /access:
+    post:
+      tags: [Access]
+      summary: Create access rule (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId]
+              properties:
+                planId:
+                  type: integer
+                courseId:
+                  type: integer
+                  nullable: true
+                classId:
+                  type: integer
+                  nullable: true
+                examId:
+                  type: integer
+                  nullable: true
+      responses:
+        "201":
+          description: Access created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Access'
+
+    get:
+      tags: [Access]
+      summary: Get all access rules (Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Access rule list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Access'
+
+    put:
+      tags: [Access]
+      summary: Update access rule (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id:
+                  type: integer
+                planId:
+                  type: integer
+                courseId:
+                  type: integer
+                  nullable: true
+                examId:
+                  type: integer
+                  nullable: true
+      responses:
+        "201":
+          description: Access updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /access/{id}:
+    get:
+      tags: [Access]
+      summary: Get access rule by ID (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Access rule
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Access'
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # ADMIN
+  # ==========================================================================
+  /admin/create-user:
+    post:
+      tags: [Admin]
+      summary: Create user account (Admin)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, firstName, lastName, role]
+              properties:
+                email:
+                  type: string
+                  format: email
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                role:
+                  type: string
+                  enum: [TEACHER, USER]
+                password:
+                  type: string
+                  format: password
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /admin/info-user:
+    get:
+      tags: [Admin]
+      summary: Get detailed user info (Admin)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: email
+          in: query
+          schema:
+            type: string
+            format: email
+        - name: id
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/User'
+
+  # ==========================================================================
+  # STATS
+  # ==========================================================================
+  /stats:
+    get:
+      tags: [Stats]
+      summary: Get performance statistics
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: examId
+          in: query
+          schema:
+            type: integer
+        - name: userId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Statistics data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Stats'
+
+  # ==========================================================================
+  # ADVANCE
+  # ==========================================================================
+  /advance:
+    get:
+      tags: [Advance]
+      summary: Get course advancement records
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Advance list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Advance'
+
+    post:
+      tags: [Advance]
+      summary: Create advance record
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [courseId]
+              properties:
+                courseId:
+                  type: integer
+                currentLevel:
+                  type: string
+                  example: unit_1
+      responses:
+        "201":
+          description: Record created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Advance'
+
+    put:
+      tags: [Advance]
+      summary: Update advance record
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currentLevel:
+                  type: string
+                  example: unit_3
+                progress:
+                  type: number
+                  example: 45
+      responses:
+        "201":
+          description: Record updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # CATEGORIES
+  # ==========================================================================
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List all exam categories
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+
+  # ==========================================================================
+  # MODELS
+  # ==========================================================================
+  /models:
+    get:
+      tags: [Models]
+      summary: Get exam models
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ExamModel'
+
+    patch:
+      tags: [Models]
+      summary: Patch model data
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                modelId:
+                  type: integer
+                data:
+                  type: object
+      responses:
+        "200":
+          description: Model patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # LANGUAGES
+  # ==========================================================================
+  /languages:
+    get:
+      tags: [Languages]
+      summary: Get all supported UI languages
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Language list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Language'
+
+  # ==========================================================================
+  # GIFTS
+  # ==========================================================================
+  /gifts:
+    post:
+      tags: [Gifts]
+      summary: Create a gift
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planId, gifter]
+              properties:
+                planId:
+                  type: integer
+                  example: 3
+                gifter:
+                  type: integer
+                  example: 42
+      responses:
+        "201":
+          description: Gift created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        $ref: '#/components/schemas/Gift'
+
+    put:
+      tags: [Gifts]
+      summary: Redeem a gift
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [giftId]
+              properties:
+                giftId:
+                  type: integer
+      responses:
+        "200":
+          description: Gift redeemed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        "404":
+          description: Gift not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ==========================================================================
+  # FEEDBACK
+  # ==========================================================================
+  /feedback:
+    get:
+      tags: [Feedback]
+      summary: Get feedback
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Feedback data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # REPORTS
+  # ==========================================================================
+  /report:
+    post:
+      tags: [Reports]
+      summary: Submit a report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  example: Found a bug in the reading section.
+                context:
+                  type: object
+      responses:
+        "201":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /report/quality:
+    post:
+      tags: [Reports]
+      summary: Submit a quality report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  example: 4
+                comment:
+                  type: string
+      responses:
+        "201":
+          description: Quality report submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # ROLES
+  # ==========================================================================
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List all roles (Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Role list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Role'
+
+  # ==========================================================================
+  # AWS / STORAGE
+  # ==========================================================================
+  /aws:
+    get:
+      tags: [AWS]
+      summary: Get file from S3 via CloudFront
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: S3 object key
+      responses:
+        "200":
+          description: File content or signed URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /aws/upload:
+    post:
+      tags: [AWS]
+      summary: Upload speaking audio to S3
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Audio files (max 5 files, 5 MB each)
+      responses:
+        "201":
+          description: Files uploaded, CloudFront URLs returned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      response:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            url:
+                              type: string
+                              format: uri
+                            key:
+                              type: string
+
+  # ==========================================================================
+  # YOUTUBE
+  # ==========================================================================
+  /youtube:
+    get:
+      tags: [YouTube]
+      summary: Get YouTube video resources
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: model
+          in: query
+          schema:
+            type: string
+            enum: [APTIS, IELTS]
+      responses:
+        "200":
+          description: Video list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ==========================================================================
+  # SYSTEM
+  # ==========================================================================
+  /system:
+    get:
+      tags: [System]
+      summary: Lightweight ping / health check
+      responses:
+        "200":
+          description: Server timestamp
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health:
+    get:
+      tags: [System]
+      summary: Detailed health check (DB + Redis)
+      responses:
+        "200":
+          description: All services healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  db:
+                    type: string
+                    example: connected
+                  redis:
+                    type: string
+                    example: connected
+                  timestamp:
+                    type: string
+                    format: date-time
+        "503":
+          description: One or more dependencies unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /metrics:
+    get:
+      tags: [System]
+      summary: Prometheus metrics (Admin)
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Prometheus text exposition format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /webhooks/stripe:
+    post:
+      tags: [System]
+      summary: Stripe webhook receiver
+      description: |
+        Receives Stripe events. Signature is verified against `STRIPE_WEBHOOK_SECRET`.
+        Handled events: `payment_intent.succeeded`, `payment_intent.payment_failed`, `customer.subscription.deleted`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe event object
+      responses:
+        "200":
+          description: Event acknowledged
+        "400":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+security:
+  - BearerAuth: []
