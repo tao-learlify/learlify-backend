@@ -25,6 +25,12 @@ class PlansRouter {
     }
 
     this.plans.get(
+      '/catalog',
+      [Middleware.authenticate] as RequestHandler[],
+      Middleware.secure(this.controller.getCatalog) as RequestHandler
+    )
+
+    this.plans.get(
       '/',
       [Middleware.authenticate] as RequestHandler[],
       pipe.getAll as unknown as RequestHandler,

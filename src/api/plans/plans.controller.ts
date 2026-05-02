@@ -42,6 +42,18 @@ export class PlansController {
   }
 
   @Bind
+  async getCatalog(req: Request, res: Response) {
+    const modelId = req.query.modelId ? Number(req.query.modelId) : undefined
+
+    const plans = await this.plansService.getCatalog({ modelId })
+
+    return res.status(200).json({
+      response: plans,
+      statusCode: 200
+    })
+  }
+
+  @Bind
   async getAll(req: Request, res: Response) {
     const currency = req.currency ? req.currency : 'EUR'
 
