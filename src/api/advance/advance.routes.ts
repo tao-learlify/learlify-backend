@@ -25,7 +25,7 @@ class AdvanceRouter {
 
     this.advance.get(
       '/',
-      [Middleware.authenticate, pipe.create, Middleware.usePipe] as RequestHandler[],
+      [Middleware.authenticate, pipe.getAll, Middleware.usePipe] as RequestHandler[],
       Middleware.secure(this.controller.getAll) as RequestHandler
     )
 
